@@ -1,0 +1,24 @@
+name: ODD News 73 - Verify Instagram Connection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Verify @oddnews73 (READ ONLY — no posting)
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          IG_API_VERSION: v26.0
+          LIVE_PUBLISH: 'false'
+        run: python src/oddnews73.py check-account
