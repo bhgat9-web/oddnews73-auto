@@ -1,5 +1,7 @@
 # ODD News 73 — Free-first Instagram automation
 
+> **Meta Unified Login migration:** This Meta app exposes **Instagram API with Unified Login** and issues a Business Integration System User access token, using `graph.facebook.com`. The initial v1 publisher was designed for older Instagram Login (`graph.instagram.com`) and is **intentionally blocked from live publishing** until the OAuth callback, permission and account-ID verification are migrated and tested. Leave `LIVE_PUBLISH` unset/false. Never paste tokens or app secrets in chat or commit them to this public repository.
+
 This repository hosts the automation for **@oddnews73**. It discovers unusual news from attributed sources, prepares original branded 4:5 JPEG graphics and draft captions, and uses the official Instagram API after the account is configured and explicitly enabled.
 
 **Safety first:** Instagram publication is OFF unless the GitHub Actions variable `LIVE_PUBLISH` is explicitly set to `true`. Never commit access tokens or API keys into this public repository. Use GitHub Actions Secrets.
