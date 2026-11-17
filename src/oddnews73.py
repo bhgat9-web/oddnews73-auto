@@ -420,6 +420,7 @@ def ig(method, endpoint, tok, params=None):
 
 def preflight(site_url):
     live()
+    raise RuntimeError("SAFETY HOLD: This new Meta app uses Instagram API with Unified Login. The legacy Instagram Login authentication in this v1.2 publisher is incompatible; update to Business Integration System User access tokens and graph.facebook.com before any live publishing.")
     st = load()
     rec = current(st)
     if rec.get("demo") or rec["status"] != "pending":
@@ -450,6 +451,7 @@ def preflight(site_url):
 
 def publish():
     live()
+    raise RuntimeError("SAFETY HOLD: Unified Login adaptation and account verification must be completed before publishing.")
     st = load()
     rec = current(st)
     if rec.get("demo") or rec["status"] != "in_flight":
