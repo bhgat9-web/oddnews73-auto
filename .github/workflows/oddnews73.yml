@@ -1,6 +1,12 @@
 name: ODD News 73 - Three Posts Daily
 
 on:
+  push:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/oddnews73.yml'
   schedule:
     - cron: '7 9,14,20 * * *'
       timezone: Asia/Kolkata
@@ -40,8 +46,8 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-2.5-flash-lite
-          LIVE_PUBLISH: ${{ inputs.demo_mode && 'false' || vars.LIVE_PUBLISH || 'false' }}
-        run: python src/oddnews73.py prepare ${{ inputs.demo_mode && '--demo' || '' }}
+          LIVE_PUBLISH: ${{ github.event_name == 'push' && 'false' || inputs.demo_mode && 'false' || vars.LIVE_PUBLISH || 'false' }}
+        run: python src/oddnews73.py prepare ${{ github.event_name == 'push' && '--demo' || inputs.demo_mode && '--demo' || '' }}
       - name: Was a post prepared?
         id: detect
         run: |
@@ -86,7 +92,7 @@ jobs:
 
   publish:
     needs: [prepare, deploy]
-    if: needs.prepare.outputs.prepared == 'true' && vars.LIVE_PUBLISH == 'true' && inputs.demo_mode != true
+    if: needs.prepare.outputs.prepared == 'true' && vars.LIVE_PUBLISH == 'true' && github.event_name != 'push' && inputs.demo_mode != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
