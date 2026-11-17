@@ -1,0 +1,7 @@
+.env
+__pycache__/
+.pytest_cache/
+run.json
+*.pyc
+.DS_Store
+.secure/*.key
