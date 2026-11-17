@@ -19,16 +19,15 @@ from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 
 import requests
-from cryptography.fernet import Fernet
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "state.json"
 SITE = ROOT / "site"
 RUN = ROOT / "run.json"
-TOKEN_FILE = ROOT / ".secure" / "instagram_token.enc"
 EXPECTED_USER = "oddnews73"
 API_VERSION = os.environ.get("IG_API_VERSION", "v26.0")
+EXPECTED_ID = "17841472407525134"  # Verified from account listing in Meta app screenshot
 NOW = lambda: datetime.now(timezone.utc)
 
 FEEDS = [
@@ -372,39 +371,15 @@ def live():
 
 
 def token():
-    k = os.getenv("TOKEN_ENCRYPTION_KEY", "").strip()
-    if not k:
-        raise RuntimeError("Missing TOKEN_ENCRYPTION_KEY GitHub Secret")
-    cipher = Fernet(k.encode())
-    if TOKEN_FILE.is_file():
-        return cipher.decrypt(TOKEN_FILE.read_bytes()).decode(), cipher
-    value = os.getenv("INSTAGRAM_ACCESS_TOKEN", "").strip()
-    if not value:
-        raise RuntimeError("Missing INSTAGRAM_ACCESS_TOKEN GitHub Secret")
-    return value, cipher
-
-
-def refresh(tok, cipher, st):
-    last = st.get("token_last_refresh")
-    if last and (NOW() - datetime.fromisoformat(last)).days < 14:
-        return tok
-    try:
-        r = requests.get("https://graph.instagram.com/refresh_access_token",
-                         params={"grant_type": "ig_refresh_token", "access_token": tok},
-                         timeout=30)
-        r.raise_for_status()
-        tok = r.json()["access_token"]
-        st["token_last_refresh"] = NOW().isoformat()
-        print("Instagram access token refreshed.")
-    except (requests.RequestException, ValueError, KeyError):
-        print("Refresh unsuccessful; trying existing token.", file=sys.stderr)
-    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-    TOKEN_FILE.write_bytes(cipher.encrypt(tok.encode()))
+    """Token exists ONLY in GitHub Actions Secrets; never saved or echoed."""
+    tok = os.getenv("INSTAGRAM_ACCESS_TOKEN", "").strip()
+    if not tok:
+        raise RuntimeError("Missing INSTAGRAM_ACCESS_TOKEN GitHub Actions secret")
     return tok
 
 
 def ig(method, endpoint, tok, params=None):
-    uri = f"https://graph.instagram.com/{API_VERSION}/{endpoint}"
+    uri = f"https://graph.facebook.com/{API_VERSION}/{endpoint}"
     args = {"access_token": tok, **(params or {})}
     r = (requests.get(uri, params=args, timeout=35) if method == "GET"
          else requests.post(uri, data=args, timeout=35))
@@ -418,15 +393,28 @@ def ig(method, endpoint, tok, params=None):
     return obj
 
 
+def verify_account():
+    """Read-only account check; never creates or publishes a media container."""
+    tok = token()
+    profile = ig("GET", EXPECTED_ID, tok, {"fields": "id,username"})
+    if str(profile.get("id", "")) != EXPECTED_ID or str(profile.get("username", "")).lower() != EXPECTED_USER:
+        raise RuntimeError("SAFE STOP: token is not authorised for @oddnews73")
+    print("Read-only Instagram identity check passed: @oddnews73")
+    return tok
+
+
 def preflight(site_url):
     live()
-    raise RuntimeError("SAFETY HOLD: This new Meta app uses Instagram API with Unified Login. The legacy Instagram Login authentication in this v1.2 publisher is incompatible; update to Business Integration System User access tokens and graph.facebook.com before any live publishing.")
     st = load()
     rec = current(st)
     if rec.get("demo") or rec["status"] != "pending":
         raise RuntimeError("Only a pending, non-demo post may be published")
     if not site_url.startswith("https://"):
         raise RuntimeError("Site URL must be HTTPS")
+    # Ensure the image URL is on the intended GitHub Pages host.
+    host = urlparse(site_url).hostname or ""
+    if host != "bhgat9-web.github.io" or not urlparse(site_url).path.startswith("/oddnews73-auto/"):
+        raise RuntimeError("SAFE STOP: unexpected image-host domain or path")
     image_url = site_url.rstrip("/") + "/posts/" + rec["slug"] + ".jpg"
     r = requests.get(image_url, timeout=20, stream=True)
     r.raise_for_status()
@@ -434,29 +422,21 @@ def preflight(site_url):
     r.close()
     if "image/jpeg" not in ctype:
         raise RuntimeError("Public Instagram image is not a JPEG")
-    tok, cipher = token()
-    tok = refresh(tok, cipher, st)
-    profile = ig("GET", "me", tok, {"fields": "user_id,username"})
-    if profile.get("username", "").lower() != EXPECTED_USER:
-        raise RuntimeError("SAFE STOP: Instagram identity does not match @oddnews73")
-    ig_id = str(profile.get("user_id") or profile.get("id") or "")
-    if not ig_id:
-        raise RuntimeError("Meta did not supply Instagram user ID")
-    st["verified_instagram_id"] = ig_id
+    verify_account()
+    st["verified_instagram_id"] = EXPECTED_ID
     rec["image_url"] = image_url
     rec["status"] = "in_flight"
     save(st)
-    print("Preflight successful: correct account and public JPEG, marked in-flight")
+    print("Preflight successful: correct @oddnews73 account and public JPEG")
 
 
 def publish():
     live()
-    raise RuntimeError("SAFETY HOLD: Unified Login adaptation and account verification must be completed before publishing.")
     st = load()
     rec = current(st)
     if rec.get("demo") or rec["status"] != "in_flight":
         raise RuntimeError("SAFE STOP: missing committed preflight marker")
-    tok, _ = token()
+    tok = verify_account()
     ig_id = st["verified_instagram_id"]
     did_call_publish = False
     try:
@@ -493,12 +473,14 @@ def publish():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=("prepare", "preflight", "publish", "status"))
+    p.add_argument("command", choices=("prepare", "check-account", "preflight", "publish", "status"))
     p.add_argument("--demo", action="store_true")
     p.add_argument("--site-url", default="")
     a = p.parse_args()
     if a.command == "prepare":
         prepare(a.demo)
+    elif a.command == "check-account":
+        verify_account()
     elif a.command == "preflight":
         preflight(a.site_url)
     elif a.command == "publish":
