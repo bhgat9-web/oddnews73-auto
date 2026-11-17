@@ -1,0 +1,128 @@
+name: ODD News 73 - Three Posts Daily
+
+on:
+  schedule:
+    - cron: '7 9,14,20 * * *'
+      timezone: Asia/Kolkata
+  workflow_dispatch:
+    inputs:
+      demo_mode:
+        description: 'Generate a clearly marked fictional design demo; never publish'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: oddnews73-publisher
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      prepared: ${{ steps.detect.outputs.prepared }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Run the offline safety tests
+        run: python -m unittest discover -s tests -v
+      - name: Research story and generate original JPEG
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.5-flash-lite
+          LIVE_PUBLISH: ${{ inputs.demo_mode && 'false' || vars.LIVE_PUBLISH || 'false' }}
+        run: python src/oddnews73.py prepare ${{ inputs.demo_mode && '--demo' || '' }}
+      - name: Was a post prepared?
+        id: detect
+        run: |
+          if [ -f run.json ]; then
+            echo "prepared=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prepared=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Persist draft and history
+        if: steps.detect.outputs.prepared == 'true'
+        run: |
+          git config user.name "oddnews73-bot"
+          git config user.email "oddnews73-bot@users.noreply.github.com"
+          git add state.json site/
+          git diff --cached --quiet || (git commit -m "ODD News 73: prepare draft" && git push)
+      - uses: actions/configure-pages@v5
+        if: steps.detect.outputs.prepared == 'true'
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.detect.outputs.prepared == 'true'
+        with:
+          path: site
+      - uses: actions/upload-artifact@v4
+        if: steps.detect.outputs.prepared == 'true'
+        with:
+          name: current-post
+          path: run.json
+          retention-days: 1
+
+  deploy:
+    needs: prepare
+    if: needs.prepare.outputs.prepared == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.release.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.release.outputs.page_url }}
+    steps:
+      - name: Deploy public graphics and source index
+        id: release
+        uses: actions/deploy-pages@v4
+
+  publish:
+    needs: [prepare, deploy]
+    if: needs.prepare.outputs.prepared == 'true' && vars.LIVE_PUBLISH == 'true' && inputs.demo_mode != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: current-post
+          path: .
+      - name: Verify public JPEG and exact Instagram account
+        env:
+          LIVE_PUBLISH: 'true'
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+        run: python src/oddnews73.py preflight --site-url "${{ needs.deploy.outputs.page_url }}"
+      - name: Commit in-flight state BEFORE media_publish
+        run: |
+          git config user.name "oddnews73-bot"
+          git config user.email "oddnews73-bot@users.noreply.github.com"
+          git add state.json .secure/instagram_token.enc
+          git diff --cached --quiet || (git commit -m "ODD News 73: account checked, in flight" && git push)
+      - name: Publish via official Instagram API
+        env:
+          LIVE_PUBLISH: 'true'
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+        run: python src/oddnews73.py publish
+      - name: Save outcome; ambiguous results require manual review
+        if: always()
+        run: |
+          git config user.name "oddnews73-bot"
+          git config user.email "oddnews73-bot@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || (git commit -m "ODD News 73: publish result" && git push)
