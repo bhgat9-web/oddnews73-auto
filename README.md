@@ -4,6 +4,8 @@
 
 This repository hosts the automation for **@oddnews73**. It discovers unusual news from attributed sources, prepares original branded 4:5 JPEG graphics and draft captions, and uses the official Instagram API after the account is configured and explicitly enabled.
 
+The owner-supplied official logo is stored at `assets/odd-news-73-logo.png` and is composited into every generated post. Do not redraw, recolor, or replace it with an AI-generated imitation.
+
 **Safety first:** The scheduled workflow can only prepare drafts and deploy their review images; it contains no publish job. The separate first-post workflow is manual-only and requires the exact draft slug, a digest bound to the caption/source/JPEG, and the literal confirmation `PUBLISH @oddnews73`. Never commit access tokens or API keys into this public repository. Use GitHub Actions Secrets.
 
 The pipeline is designed to run around 09:07, 14:07 and 20:07 Asia/Kolkata. Scheduled workflows may be delayed. It may skip a run if no suitable story is available.
