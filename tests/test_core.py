@@ -61,6 +61,8 @@ class EditorialSafetyTests(unittest.TestCase):
         self.assertTrue(app.LOGO.is_file())
         with Image.open(app.LOGO) as logo:
             self.assertEqual(logo.width, logo.height)
+            self.assertGreaterEqual(logo.width, 256)
+            self.assertEqual(logo.format, "PNG")
 
 
 class PublishingSafetyTests(unittest.TestCase):
