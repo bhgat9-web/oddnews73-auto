@@ -202,24 +202,43 @@ def caption(story, demo=False):
         f"Source: {story['source']}\nTitle: {story['title']}\nDate: {date}\n"
         f"Excerpt: {story['excerpt']}"
     )
-    try:
-        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
-        r = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-            headers={"x-goog-api-key": key, "Content-Type": "application/json"},
-            json={"contents": [{"parts": [{"text": instructions}]}],
-                  "generationConfig": {"temperature": .35, "maxOutputTokens": 800}},
-            timeout=30
-        )
-        r.raise_for_status()
-        result = "".join(p.get("text", "") for p in r.json()["candidates"][0]["content"]["parts"]).strip()
-        if (story["link"] in result and 260 <= len(result) <= 1900
-                and "an unusual report from" not in result.lower()
-                and "#oddnews73" in result.lower()):
-            return result
-        print("EDITORIAL SKIP: AI response failed quality and sourcing checks.", file=sys.stderr)
-    except (requests.RequestException, ValueError, KeyError, IndexError):
-        print("EDITORIAL SKIP: Gemini unavailable or rejected the request.", file=sys.stderr)
+    # Restrict generation to models documented as offering a free API tier.
+    # For newer API projects, legacy Gemini 2.5 often returns HTTP 404.
+    preferred = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
+    free_candidates = ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite")
+    models = [preferred] if preferred in free_candidates else []
+    models.extend(m for m in free_candidates if m not in models)
+    for model in models:
+        try:
+            r = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                json={"contents": [{"parts": [{"text": instructions}]}],
+                      "generationConfig": {"temperature": .35, "maxOutputTokens": 1400}},
+                timeout=30
+            )
+            if r.status_code == 404:
+                print(f"Model {model} not available for this project; testing free-tier alternative.", file=sys.stderr)
+                continue
+            r.raise_for_status()
+            result = "".join(
+                p.get("text", "") for p in r.json()["candidates"][0]["content"]["parts"]
+            ).strip()
+            if (story["link"] in result and 260 <= len(result) <= 1900
+                    and "an unusual report from" not in result.lower()
+                    and "#oddnews73" in result.lower()):
+                print(f"Gemini editorial caption accepted using {model}.")
+                return result
+            print("EDITORIAL SKIP: AI response failed quality and sourcing checks.", file=sys.stderr)
+            return None
+        except requests.HTTPError as exc:
+            code = exc.response.status_code if exc.response is not None else "unknown"
+            print(f"EDITORIAL SKIP: Gemini returned HTTP {code} for {model}.", file=sys.stderr)
+            return None
+        except (requests.RequestException, ValueError, KeyError, IndexError, TypeError):
+            print(f"EDITORIAL SKIP: Gemini {model} could not produce valid text.", file=sys.stderr)
+            return None
+    print("EDITORIAL SKIP: Neither approved free-tier Gemini model is available.", file=sys.stderr)
     return None
 
 
