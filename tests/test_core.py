@@ -56,6 +56,12 @@ class EditorialSafetyTests(unittest.TestCase):
                 self.assertEqual(img.size, (1080, 1350))
                 self.assertEqual(img.format, "JPEG")
 
+    def test_official_logo_asset_is_square(self):
+        from PIL import Image
+        self.assertTrue(app.LOGO.is_file())
+        with Image.open(app.LOGO) as logo:
+            self.assertEqual(logo.width, logo.height)
+
 
 class PublishingSafetyTests(unittest.TestCase):
     def test_publish_requires_live_enabled(self):
