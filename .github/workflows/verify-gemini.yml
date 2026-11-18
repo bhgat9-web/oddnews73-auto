@@ -11,7 +11,7 @@ jobs:
     name: Test free-tier AI writing access
     runs-on: ubuntu-latest
     steps:
-      - name: Check Gemini 2.5 Flash-Lite API (no Instagram)
+      - name: Check current free Gemini models (no Instagram)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         shell: bash
@@ -28,41 +28,51 @@ jobs:
               print("FAIL: GEMINI_API_KEY not found in repository Actions Secrets.")
               sys.exit(1)
 
-          url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+          # These two models are currently listed on Google's free API tier.
+          # A recent Gemini key may not be eligible to call older 2.5 models.
+          models = ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite")
           payload = {
-              "contents": [{"parts": [{"text": "Connection test: reply with only the word READY."}]}],
-              "generationConfig": {"temperature": 0, "maxOutputTokens": 40}
+              "contents": [{"parts": [{"text": "Connection test: respond with one sentence saying READY and that this is a test."}]}],
+              "generationConfig": {"maxOutputTokens": 256}
           }
-          req = Request(
-              url,
-              data=json.dumps(payload).encode("utf-8"),
-              headers={"Content-Type": "application/json", "x-goog-api-key": key},
-              method="POST"
-          )
-          try:
-              with urlopen(req, timeout=30) as response:
-                  data = json.loads(response.read())
-          except HTTPError as error:
-              print(f"FAIL: Gemini API returned HTTP {error.code}.")
-              if error.code == 429:
-                  print("Free-tier quota or rate limit reached; no Instagram action was taken.")
-              elif error.code in (401, 403):
-                  print("Check the key, API access, project and model eligibility.")
-              elif error.code == 404:
-                  print("Check whether the selected Gemini model is available.")
-              sys.exit(1)
-          except (URLError, TimeoutError, ValueError) as error:
-              print(f"FAIL: Gemini response could not be verified ({type(error).__name__}).")
-              sys.exit(1)
+          for model in models:
+              url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+              req = Request(
+                  url,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json", "x-goog-api-key": key},
+                  method="POST"
+              )
+              try:
+                  with urlopen(req, timeout=30) as response:
+                      data = json.loads(response.read())
+              except HTTPError as error:
+                  print(f"Gemini {model} returned HTTP {error.code}.")
+                  if error.code == 404:
+                      print("Model unavailable to this project; checking the next free model.")
+                      continue
+                  if error.code == 429:
+                      print("FAIL: Rate limit or quota exhausted. Do not enable billing.")
+                  elif error.code in (401, 403):
+                      print("FAIL: Check the key and model access.")
+                  else:
+                      print("FAIL: Gemini request was unsuccessful.")
+                  sys.exit(1)
+              except (URLError, TimeoutError, ValueError) as error:
+                  print(f"FAIL: Could not verify Gemini ({type(error).__name__}).")
+                  sys.exit(1)
 
-          response_text = "".join(
-              part.get("text", "") for part in data.get("candidates", [{}])[0]
-              .get("content", {}).get("parts", [])
-          ).strip()
-          if "READY" not in response_text.upper():
-              print("FAIL: API returned no usable text. No Instagram action was taken.")
+              candidates = data.get("candidates") or []
+              text_parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+              response_text = "".join(part.get("text", "") for part in text_parts).strip()
+              if "READY" in response_text.upper():
+                  print(f"PASS: {model} generated the test response.")
+                  print("PASS: GitHub has access to GEMINI_API_KEY.")
+                  break
+              print(f"FAIL: {model} returned no usable text.")
               sys.exit(1)
-          print("PASS: Gemini 2.5 Flash-Lite returned generated text.")
-          print("PASS: Key is accessible to GitHub Actions.")
+          else:
+              print("FAIL: Neither supported free-tier model was accessible.")
+              sys.exit(1)
           print("No Instagram account was accessed and no post was published.")
           PY
