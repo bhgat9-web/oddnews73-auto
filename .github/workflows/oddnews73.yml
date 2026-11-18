@@ -1,7 +1,9 @@
-name: ODD News 73 - Three Posts Daily
+name: ODD News 73 - Prepare Three Daily Drafts (Publishing Disabled)
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'src/**'
       - 'tests/**'
@@ -24,7 +26,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: oddnews73-publisher
+  group: oddnews73-state-writer
   cancel-in-progress: false
 
 jobs:
@@ -46,7 +48,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-2.5-flash-lite
-          LIVE_PUBLISH: ${{ github.event_name == 'push' && 'false' || inputs.demo_mode && 'false' || vars.LIVE_PUBLISH || 'false' }}
+          LIVE_PUBLISH: 'false'
         run: python src/oddnews73.py prepare ${{ github.event_name == 'push' && '--demo' || inputs.demo_mode && '--demo' || '' }}
       - name: Was a post prepared?
         id: detect
@@ -90,43 +92,3 @@ jobs:
         id: release
         uses: actions/deploy-pages@v4
 
-  publish:
-    needs: [prepare, deploy]
-    if: needs.prepare.outputs.prepared == 'true' && vars.LIVE_PUBLISH == 'true' && github.event_name != 'push' && inputs.demo_mode != true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: current-post
-          path: .
-      - name: Verify public JPEG and exact Instagram account
-        env:
-          LIVE_PUBLISH: 'true'
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-        run: python src/oddnews73.py preflight --site-url "${{ needs.deploy.outputs.page_url }}"
-      - name: Commit in-flight state BEFORE media_publish
-        run: |
-          git config user.name "oddnews73-bot"
-          git config user.email "oddnews73-bot@users.noreply.github.com"
-          git add state.json
-          git diff --cached --quiet || (git commit -m "ODD News 73: account checked, in flight" && git push)
-      - name: Publish via official Instagram API
-        env:
-          LIVE_PUBLISH: 'true'
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-        run: python src/oddnews73.py publish
-      - name: Save outcome; ambiguous results require manual review
-        if: always()
-        run: |
-          git config user.name "oddnews73-bot"
-          git config user.email "oddnews73-bot@users.noreply.github.com"
-          git add state.json
-          git diff --cached --quiet || (git commit -m "ODD News 73: publish result" && git push)
