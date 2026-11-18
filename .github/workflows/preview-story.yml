@@ -25,7 +25,10 @@ jobs:
       - name: Run editorial and publishing safety tests
         run: python -m unittest discover -s tests -v
       - name: Research and draft one actual story
-        run: python src/oddnews73.py prepare
+        shell: bash
+        run: |
+          set -o pipefail
+          python -u src/oddnews73.py prepare 2>&1 | tee preview-diagnostics.log
       - name: Inspect draft without contacting Instagram
         shell: bash
         run: |
@@ -35,7 +38,8 @@ jobs:
 
           run = Path("run.json")
           if not run.exists():
-              print("No publishable story was selected, or the AI caption did not meet quality checks.")
+              print("PREVIEW NOT CREATED: inspect preview-diagnostics.log or the Research step above.")
+              print("No story was eligible, the source excerpt lacked enough detail, or Gemini failed editorial validation.")
               raise SystemExit(1)
           slug = json.loads(run.read_text())["slug"]
           record = json.loads(Path("site/posts", slug + ".json").read_text())
@@ -48,12 +52,14 @@ jobs:
           print(record["caption"])
           print("Graphic: site/posts/" + slug + ".jpg")
           PY
-      - name: Attach preview files to workflow
+      - name: Attach diagnostics and any generated preview
         uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
-          name: oddnews73-real-story-preview
+          name: oddnews73-preview-and-diagnostics
+          if-no-files-found: warn
           path: |
+            preview-diagnostics.log
             site/posts/*.jpg
             site/posts/*.json
           retention-days: 7
