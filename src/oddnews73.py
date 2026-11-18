@@ -143,18 +143,25 @@ def duplicate(title, st):
 
 def choose(st):
     candidates = []
+    feed_items = 0
+    skipped_duplicate = 0
+    skipped_topic = 0
     for source, feed in FEEDS:
         try:
             resp = requests.get(feed, timeout=15, headers={"User-Agent": UA})
             resp.raise_for_status()
             if len(resp.content) > 3_000_000:
                 continue
-            for item in rss_items(resp.content):
+            parsed = list(rss_items(resp.content))
+            feed_items += len(parsed)
+            print(f"Source {source}: {len(parsed)} timestamped feed items.")
+            for item in parsed:
                 link = item["link"].split("#")[0]
                 title, excerpt = clean(item["title"]), clean(item["excerpt"])
                 if not allowed(link) or not title or not excerpt:
                     continue
                 if link in st["seen_links"] or duplicate(title, st):
+                    skipped_duplicate += 1
                     continue
                 age = (NOW() - datetime.fromisoformat(item["published_utc"])).total_seconds() / 3600
                 if age < -2 or age > 168:
@@ -169,6 +176,7 @@ def choose(st):
                 # The unusual aspect must appear in the source headline itself.
                 headline_matches = sum(term in title_lower for term in WEIRD)
                 if headline_matches < 1:
+                    skipped_topic += 1
                     continue
                 matches = headline_matches * 2 + sum(term in excerpt.lower() for term in WEIRD)
                 item.update(link=link, title=title, excerpt=short(excerpt, 500), source=source)
@@ -176,10 +184,15 @@ def choose(st):
                 candidates.append(item)
         except (requests.RequestException, ET.ParseError, ValueError) as exc:
             print(f"Feed unavailable: {source} ({type(exc).__name__})", file=sys.stderr)
+    print(f"Eligible news candidates: {len(candidates)}; parsed {feed_items} feed items, "
+          f"duplicates: {skipped_duplicate}, non-matching headlines: {skipped_topic}.")
     if not candidates:
+        print("EDITORIAL SKIP: No recent non-duplicate, unusual source-linked story qualified.")
         return None
     fresh = [x for x in candidates if (NOW() - datetime.fromisoformat(x["published_utc"])).total_seconds() <= 172800]
-    return max(fresh or candidates, key=lambda x: x["score"])
+    selected = max(fresh or candidates, key=lambda x: x["score"])
+    print(f"Selected candidate: {selected['source']} — {short(selected['title'], 110)}")
+    return selected
 
 
 def caption(story, demo=False):
