@@ -203,20 +203,23 @@ def caption(story, demo=False):
     if not key:
         print("EDITORIAL SKIP: GEMINI_API_KEY not configured; refusing generic automatic post.")
         return None
+
     instructions = (
-        "You are a cautious editor for @oddnews73. Based exclusively on the title, source, "
-        "date and excerpt below, write a 105-150 word Instagram caption with an intriguing headline, "
-        "2 or 3 concrete sourced details explaining what is actually unusual, "
-        "accurate paraphrase, a question and 4 hashtags. Do not use generic phrases such as "
-        "'an unusual report has caught our attention'. Do not add facts, quotes, implications "
-        "or measurements. Explicitly attribute claims to the source; do not call speculation "
-        "confirmed. Output plain text; use entirely original language and include the precise "
-        f"URL {story['link']} at the end.\n"
-        f"Source: {story['source']}\nTitle: {story['title']}\nDate: {date}\n"
-        f"Excerpt: {story['excerpt']}"
+        "You are the careful, vivid news editor of Instagram @oddnews73. "
+        "Only use the provided publication headline, source, publication date and excerpt. "
+        "Write 90-130 words of specific, interesting, accurate prose with a compelling "
+        "first sentence, two concrete details supported by the provided source text, and "
+        "a genuinely relevant closing question. Clearly attribute reports and uncertainty; "
+        "never present unconfirmed claims as verified. If the excerpt lacks two substantive "
+        "facts, return INSUFFICIENT_SOURCE_DETAILS instead of inventing any. "
+        "Avoid hype, generic filler, sensationalized unsupported claims, broad claims or "
+        "repetition of the entire source title. Do not add hashtags, URLs or a separate "
+        "source line: the publishing software attaches those accurately. "
+        "Output just the caption text.\n"
+        f"Source: {story['source']}\nTitle: {story['title']}\n"
+        f"Publication date: {date}\nExcerpt: {story['excerpt']}"
     )
-    # Restrict generation to models documented as offering a free API tier.
-    # For newer API projects, legacy Gemini 2.5 often returns HTTP 404.
+
     preferred = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
     free_candidates = ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite")
     models = [preferred] if preferred in free_candidates else []
@@ -227,31 +230,45 @@ def caption(story, demo=False):
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
                 headers={"x-goog-api-key": key, "Content-Type": "application/json"},
                 json={"contents": [{"parts": [{"text": instructions}]}],
-                      "generationConfig": {"temperature": .35, "maxOutputTokens": 1400}},
+                      "generationConfig": {"temperature": .30, "maxOutputTokens": 1400}},
                 timeout=30
             )
             if r.status_code == 404:
-                print(f"Model {model} not available for this project; testing free-tier alternative.", file=sys.stderr)
+                print(f"EDITORIAL: {model} not available; trying alternative model.", file=sys.stderr)
                 continue
             r.raise_for_status()
             result = "".join(
                 p.get("text", "") for p in r.json()["candidates"][0]["content"]["parts"]
             ).strip()
-            if (story["link"] in result and 260 <= len(result) <= 1900
+            if result.upper().startswith("INSUFFICIENT_SOURCE_DETAILS"):
+                print("EDITORIAL SKIP: News excerpt lacked enough concrete, verifiable facts.")
+                return None
+            if story["link"] in result:
+                result = result.replace(story["link"], "").strip()
+            # Keep model prose but attach source metadata and stable hashtags in code,
+            # rather than requiring the language model to reproduce the exact URL.
+            result = re.sub(r"#(?:ODDNews73|WeirdNews|StrangeWorld|Discoveries)\b",
+                            "", result, flags=re.I).strip()
+            if (240 <= len(result) <= 1750
+                    and len(result.split()) >= 50
                     and "an unusual report from" not in result.lower()
-                    and "#oddnews73" in result.lower()):
+                    and "has caught our attention" not in result.lower()):
                 print(f"Gemini editorial caption accepted using {model}.")
-                return result
-            print("EDITORIAL SKIP: AI response failed quality and sourcing checks.", file=sys.stderr)
+                return (result + f"\n\nSource: {story['source']} · {date}\n"
+                        + story["link"]
+                        + "\n\n#ODDNews73 #WeirdNews #StrangeWorld #Discoveries")
+            print(f"EDITORIAL SKIP: AI result failed prose checks "
+                  f"(characters={len(result)}, words={len(result.split())}).",
+                  file=sys.stderr)
             return None
         except requests.HTTPError as exc:
-            code = exc.response.status_code if exc.response is not None else "unknown"
-            print(f"EDITORIAL SKIP: Gemini returned HTTP {code} for {model}.", file=sys.stderr)
+            status = exc.response.status_code if exc.response is not None else "unknown"
+            print(f"EDITORIAL SKIP: Gemini {model} returned HTTP {status}.", file=sys.stderr)
             return None
         except (requests.RequestException, ValueError, KeyError, IndexError, TypeError):
-            print(f"EDITORIAL SKIP: Gemini {model} could not produce valid text.", file=sys.stderr)
+            print(f"EDITORIAL SKIP: Gemini {model} failed to provide usable text.", file=sys.stderr)
             return None
-    print("EDITORIAL SKIP: Neither approved free-tier Gemini model is available.", file=sys.stderr)
+    print("EDITORIAL SKIP: Neither free-tier model was available.", file=sys.stderr)
     return None
 
 
