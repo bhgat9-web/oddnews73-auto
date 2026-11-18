@@ -21,12 +21,13 @@ from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 
 import requests
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "state.json"
 SITE = ROOT / "site"
 RUN = ROOT / "run.json"
+LOGO = ROOT / "assets" / "odd-news-73-logo.png"
 EXPECTED_USER = "oddnews73"
 API_VERSION = os.environ.get("IG_API_VERSION", "v27.0")
 API_HOST = os.environ.get("IG_API_HOST", "graph.facebook.com").strip().lower()
@@ -245,6 +246,18 @@ def wrap(draw, title, max_width=940, max_lines=4):
     return lines[:max_lines], f
 
 
+def add_official_logo(img, xy=(45, 35), size=190):
+    """Place the owner-supplied ODD News 73 logo without generative alteration."""
+    if not LOGO.is_file():
+        raise RuntimeError("Missing official ODD News 73 logo asset")
+    with Image.open(LOGO) as source:
+        logo = ImageOps.fit(source.convert("RGB"), (size, size),
+                            method=Image.Resampling.LANCZOS)
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).ellipse((1, 1, size - 2, size - 2), fill=255)
+    img.paste(logo, xy, mask)
+
+
 def graphic(story, path, demo=False):
     w, h = 1080, 1350
     title = story["title"]
@@ -272,9 +285,11 @@ def graphic(story, path, demo=False):
     d.arc((730, 320, 1070, 610), 15, 180, fill=accent, width=7)
     d.ellipse((790, 405, 987, 538), outline=accent, width=8)
     d.ellipse((870, 433, 917, 480), fill=accent)
-    d.rounded_rectangle((65, 53, 1015, 123), 18, fill=(11, 35, 58), outline=accent, width=3)
-    d.text((90, 63), "ODD NEWS 73", font=font(38, True), fill=(250, 252, 255))
-    d.text((756, 78), "@oddnews73", font=font(23, True), fill=(180, 219, 236))
+    brand = (255, 132, 0)
+    d.rounded_rectangle((255, 52, 1015, 145), 18, fill=(8, 21, 36), outline=brand, width=3)
+    d.text((285, 59), "ODD NEWS 73", font=font(37, True), fill=(250, 252, 255))
+    d.text((780, 102), "@oddnews73", font=font(22, True), fill=brand)
+    add_official_logo(img)
     d.rounded_rectangle((66, 732, 550, 795), 14, fill=accent)
     d.text((92, 742), kind, font=font(28, True), fill=(5, 17, 30))
     lines, f = wrap(d, title)
