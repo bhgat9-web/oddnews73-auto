@@ -52,6 +52,30 @@ class EditorialSafetyTests(unittest.TestCase):
                 patch.object(app.requests, "post", side_effect=requests.Timeout):
             self.assertIsNone(app.caption(story))
 
+    def test_unavailable_current_model_falls_back_to_approved_free_model(self):
+        from unittest.mock import Mock
+        story = {"title": "Rare mysterious fossil", "source": "NASA",
+                 "link": "https://nasa.gov/test", "excerpt": "An unusual discovery",
+                 "published_utc": "2026-11-17T00:00:00+00:00"}
+        long_caption = (
+            "A remarkable fossil found beneath an ancient landscape has raised questions "
+            "about the wildlife that lived there thousands of years ago. The source describes "
+            "the remains as unusually preserved, and researchers are still investigating "
+            "what they represent. The real story is worth examining carefully, because "
+            "extraordinary claims require traceable evidence and responsible reporting. "
+            + story["link"] + " #ODDNews73"
+        )
+        not_found = Mock(status_code=404)
+        success = Mock(status_code=200)
+        success.json.return_value = {"candidates": [{"content": {"parts": [{"text": long_caption}]}}]}
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-test-key",
+                                        "GEMINI_MODEL": "gemini-3.5-flash-lite"}), \
+                patch.object(app.requests, "post", side_effect=[not_found, success]) as post:
+            self.assertEqual(app.caption(story), long_caption)
+        self.assertEqual(post.call_count, 2)
+        self.assertIn("gemini-3.5-flash-lite", post.call_args_list[0].args[0])
+        self.assertIn("gemini-3.1-flash-lite", post.call_args_list[1].args[0])
+
     def test_poster_is_correct_4_by_5_size(self):
         from PIL import Image
         story = {"title": "Fictional demo only", "source": "DEMO",
