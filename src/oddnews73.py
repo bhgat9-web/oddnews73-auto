@@ -43,10 +43,13 @@ FEEDS = [
     ("Smithsonian Science", "https://www.smithsonianmag.com/rss/science-nature/"),
 ]
 ALLOW = ("nasa.gov", "phys.org", "livescience.com", "smithsonianmag.com")
-WEIRD = ("unusual", "strange", "mystery", "mysterious", "rare", "fossil",
-         "ancient", "unexplained", "deep sea", "new species", "discovery",
-         "discover", "extinct", "prehistoric", "archaeolog", "odd", "unexpected",
-         "meteor", "comet", "planet", "giant", "animal", "secret", "hidden")
+WEIRD = ("unusual", "bizarre", "strange", "mystery", "mysterious", "rare",
+         "fossil", "ancient", "unexplained", "deep sea", "new species",
+         "extinct", "prehistoric", "archaeolog", "odd", "unexpected",
+         "meteorite", "comet", "hidden", "enigmatic", "unidentified", "unprecedented")
+ORDINARY_NEWS = ("spacex", "starship", "rocket", "upper stage", "stock market",
+                 "quarterly earnings", "new smartphone", "phone launch",
+                 "launches satellite", "company reports", "reusable rocket")
 EXCLUDE = ("political party", "election fraud", "miracle cure", "cancer cure",
            "celebrity scandal", "conspiracy theory", "alien spacecraft",
            "terrorist attack", "assault allegation", "ghost caught on camera",
@@ -157,11 +160,17 @@ def choose(st):
                 if age < -2 or age > 168:
                     continue
                 txt = (title + " " + excerpt).lower()
+                title_lower = title.lower()
                 if any(term in txt for term in EXCLUDE):
                     continue
-                matches = sum(term in txt for term in WEIRD)
-                if matches < 1:
+                if any(term in title_lower for term in ORDINARY_NEWS):
                     continue
+                # A general science/business item isn't inherently weird.
+                # The unusual aspect must appear in the source headline itself.
+                headline_matches = sum(term in title_lower for term in WEIRD)
+                if headline_matches < 1:
+                    continue
+                matches = headline_matches * 2 + sum(term in excerpt.lower() for term in WEIRD)
                 item.update(link=link, title=title, excerpt=short(excerpt, 500), source=source)
                 item["score"] = matches * 5 + (30 if age <= 48 else 0) - age / 24
                 candidates.append(item)
@@ -177,21 +186,16 @@ def caption(story, demo=False):
     if demo:
         return "DEMO ONLY — NOT A REAL NEWS REPORT."
     date = datetime.fromisoformat(story["published_utc"]).strftime("%d %b %Y")
-    fallback = (
-        f"🌍 {short(story['title'], 120)}\n\n"
-        f"An unusual report from {story['source']} has caught our attention. "
-        "This post links to the original publication, not independently verified firsthand evidence. "
-        "Read the full report before drawing conclusions.\n\n"
-        f"🗓️ {date} · 🔎 {story['source']}\nOriginal source: {story['link']}\n\n"
-        "What do you make of this?\n\n#ODDNews73 #WeirdNews #StrangeWorld #Discoveries"
-    )
     key = os.getenv("GEMINI_API_KEY", "").strip()
     if not key:
-        return fallback
+        print("EDITORIAL SKIP: GEMINI_API_KEY not configured; refusing generic automatic post.")
+        return None
     instructions = (
         "You are a cautious editor for @oddnews73. Based exclusively on the title, source, "
-        "date and excerpt below, write a 90-135 word Instagram caption with an engaging headline, "
-        "accurate paraphrase, a question and 4 hashtags. Do not add facts, quotes, implications "
+        "date and excerpt below, write a 105-150 word Instagram caption with an intriguing headline, "
+        "2 or 3 concrete sourced details explaining what is actually unusual, "
+        "accurate paraphrase, a question and 4 hashtags. Do not use generic phrases such as "
+        "'an unusual report has caught our attention'. Do not add facts, quotes, implications "
         "or measurements. Explicitly attribute claims to the source; do not call speculation "
         "confirmed. Output plain text; use entirely original language and include the precise "
         f"URL {story['link']} at the end.\n"
@@ -204,16 +208,19 @@ def caption(story, demo=False):
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
             headers={"x-goog-api-key": key, "Content-Type": "application/json"},
             json={"contents": [{"parts": [{"text": instructions}]}],
-                  "generationConfig": {"temperature": .2, "maxOutputTokens": 500}},
+                  "generationConfig": {"temperature": .35, "maxOutputTokens": 800}},
             timeout=30
         )
         r.raise_for_status()
         result = "".join(p.get("text", "") for p in r.json()["candidates"][0]["content"]["parts"]).strip()
-        if story["link"] in result and 100 < len(result) < 1600:
+        if (story["link"] in result and 260 <= len(result) <= 1900
+                and "an unusual report from" not in result.lower()
+                and "#oddnews73" in result.lower()):
             return result
+        print("EDITORIAL SKIP: AI response failed quality and sourcing checks.", file=sys.stderr)
     except (requests.RequestException, ValueError, KeyError, IndexError):
-        print("Gemini unavailable; using factual attribution template.", file=sys.stderr)
-    return fallback
+        print("EDITORIAL SKIP: Gemini unavailable or rejected the request.", file=sys.stderr)
+    return None
 
 
 def font(size, bold=False):
@@ -358,10 +365,14 @@ def prepare(demo=False):
         return
     slug = hashlib.sha256(story["link"].encode()).hexdigest()[:16]
     status = "pending" if os.getenv("LIVE_PUBLISH", "false").lower() == "true" and not demo else "draft"
+    generated_caption = caption(story, demo)
+    if not generated_caption:
+        print("Skipping this scheduled slot: no valid source-linked AI caption.")
+        return
     rec = {"slug": slug, "title": story["title"], "status": status,
            "source": story["source"], "source_url": story["link"],
            "published_utc": story["published_utc"], "created_utc": NOW().isoformat(),
-           "caption": caption(story, demo), "demo": bool(demo)}
+           "caption": generated_caption, "demo": bool(demo)}
     graphic(story, SITE / "posts" / (slug + ".jpg"), demo)
     if status == "pending" and os.getenv("AUTO_PUBLISH", "").lower() == "true":
         rec["automatic_digest"] = approval_digest(rec)
