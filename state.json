@@ -54,6 +54,17 @@
       "created_utc": "2026-11-17T19:45:42.175628+00:00",
       "caption": "DEMO ONLY — NOT A REAL NEWS REPORT.",
       "demo": true
+    },
+    {
+      "slug": "44f96f07de7da139",
+      "title": "This is a design demonstration, not a real news event",
+      "status": "draft",
+      "source": "DEMO",
+      "source_url": "https://example.org/demo",
+      "published_utc": "2026-11-18T05:55:20.605893+00:00",
+      "created_utc": "2026-11-18T05:55:20.605936+00:00",
+      "caption": "DEMO ONLY — NOT A REAL NEWS REPORT.",
+      "demo": true
     }
   ],
   "seen_links": []
