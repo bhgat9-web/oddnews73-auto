@@ -124,13 +124,16 @@
     {
       "slug": "f5b7d9c401323177",
       "title": "Thinkers of Cernavodă: Mysterious Stone Age figurines discovered in a 7,000-year-old grave in Romania",
-      "status": "draft",
+      "status": "in_flight",
       "source": "Live Science",
       "source_url": "https://www.livescience.com/archaeology/thinkers-of-cernavoda-mysterious-stone-age-figurines-discovered-in-a-7-000-year-old-grave-in-romania",
       "published_utc": "2026-11-16T11:00:00+00:00",
       "created_utc": "2026-11-18T06:04:03.080302+00:00",
       "caption": "🗿 Romania’s 7,000-year-old “Thinkers” are still a mystery.\n\nLive Science reports that archaeologists uncovered the fired-clay pair in 1956 in a Stone Age grave at Cernavodă. One figure leans forward with his head in his hands; the other sits upright. Both are associated with the Late Neolithic Hamangia culture, around 5000 B.C.\n\nTheir purpose remains uncertain. Interpretations range from ritual or solar symbolism to mourners or a paired representation of masculine and feminine principles. None is confirmed.\n\nWhy do you think these small figures still feel so modern?\n\nSource: Live Science (16 Nov 2026)\nhttps://www.livescience.com/archaeology/thinkers-of-cernavoda-mysterious-stone-age-figurines-discovered-in-a-7-000-year-old-grave-in-romania\n\n#ODDNews73 #Archaeology #AncientMysteries #History",
-      "demo": false
+      "demo": false,
+      "approved_digest": "12bce08d37eeffaf93200a1786c6b4bb1f44d27170c6350d50b66a4fb2fc0640",
+      "approved_utc": "2026-11-18T07:43:09.410255+00:00",
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/f5b7d9c401323177.jpg"
     },
     {
       "slug": "44f96f07de7da139",
@@ -146,5 +149,6 @@
   ],
   "seen_links": [
     "https://www.livescience.com/archaeology/thinkers-of-cernavoda-mysterious-stone-age-figurines-discovered-in-a-7-000-year-old-grave-in-romania"
-  ]
+  ],
+  "verified_instagram_id": "17841472407525134"
 }
