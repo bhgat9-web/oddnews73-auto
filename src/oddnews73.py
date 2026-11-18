@@ -1,10 +1,12 @@
 """ODD News 73: source-linked Instagram feed autopublisher.
-Commands: prepare [--demo], preflight --site-url URL, publish, status.
+Commands: prepare [--demo], review, approve, check-account, preflight, publish, status.
 Never calls Meta's publishing API unless LIVE_PUBLISH=true.
 """
 import argparse
 import hashlib
+import hmac
 import html
+import io
 import json
 import os
 import random
@@ -26,7 +28,9 @@ STATE = ROOT / "state.json"
 SITE = ROOT / "site"
 RUN = ROOT / "run.json"
 EXPECTED_USER = "oddnews73"
-API_VERSION = os.environ.get("IG_API_VERSION", "v26.0")
+API_VERSION = os.environ.get("IG_API_VERSION", "v27.0")
+API_HOST = os.environ.get("IG_API_HOST", "graph.instagram.com").strip().lower()
+ALLOWED_API_HOSTS = ("graph.instagram.com", "graph.facebook.com")
 EXPECTED_ID = "17841472407525134"  # Verified from account listing in Meta app screenshot
 NOW = lambda: datetime.now(timezone.utc)
 
@@ -365,6 +369,65 @@ def current(st):
     return rec
 
 
+def approval_digest(rec):
+    """Bind a human approval to the exact caption, source, and JPEG bytes."""
+    image = SITE / "posts" / (rec["slug"] + ".jpg")
+    if not image.is_file():
+        raise RuntimeError("Draft JPEG is missing")
+    approved = {
+        "slug": rec["slug"],
+        "title": rec["title"],
+        "caption": rec["caption"],
+        "source": rec["source"],
+        "source_url": rec["source_url"],
+        "image_sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+    }
+    payload = json.dumps(approved, sort_keys=True, ensure_ascii=False,
+                         separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def approve(slug, supplied_digest):
+    """Stage one exact, previously reviewed draft for the supervised test."""
+    live()
+    if not re.fullmatch(r"[0-9a-f]{16}", slug or ""):
+        raise RuntimeError("Invalid approved slug")
+    st = load()
+    rec = next((x for x in reversed(st["entries"]) if x.get("slug") == slug), None)
+    if not rec or rec.get("demo") or rec.get("status") != "draft":
+        raise RuntimeError("Only a non-demo draft may be approved")
+    if not allowed(rec.get("source_url", "")):
+        raise RuntimeError("Approved draft source is not allowlisted")
+    expected = approval_digest(rec)
+    if not hmac.compare_digest(expected, (supplied_digest or "").lower()):
+        raise RuntimeError("SAFE STOP: approval does not match the exact caption and JPEG")
+    rec["approved_digest"] = expected
+    rec["approved_utc"] = NOW().isoformat()
+    rec["status"] = "pending"
+    save(st)
+    RUN.write_text(json.dumps({"slug": slug}), encoding="utf-8")
+    print("Exact reviewed draft approved for one supervised publish:", slug)
+
+
+def review(slug=""):
+    """Print the exact non-secret bundle that a human must review and approve."""
+    st = load()
+    rec = next((x for x in reversed(st["entries"])
+                if not x.get("demo") and x.get("status") == "draft"
+                and (not slug or x.get("slug") == slug)), None)
+    if not rec:
+        raise RuntimeError("No matching non-demo draft is ready for review")
+    print(json.dumps({
+        "slug": rec["slug"],
+        "title": rec["title"],
+        "caption": rec["caption"],
+        "source": rec["source"],
+        "source_url": rec["source_url"],
+        "image_path": "site/posts/" + rec["slug"] + ".jpg",
+        "approval_digest": approval_digest(rec),
+    }, indent=2, ensure_ascii=False))
+
+
 def live():
     if os.getenv("LIVE_PUBLISH", "").lower() != "true":
         raise RuntimeError("Publishing OFF: LIVE_PUBLISH is not true")
@@ -379,7 +442,9 @@ def token():
 
 
 def ig(method, endpoint, tok, params=None):
-    uri = f"https://graph.facebook.com/{API_VERSION}/{endpoint}"
+    if API_HOST not in ALLOWED_API_HOSTS:
+        raise RuntimeError("SAFE STOP: unsupported Meta API host")
+    uri = f"https://{API_HOST}/{API_VERSION}/{endpoint}"
     args = {"access_token": tok, **(params or {})}
     r = (requests.get(uri, params=args, timeout=35) if method == "GET"
          else requests.post(uri, data=args, timeout=35))
@@ -399,7 +464,11 @@ def verify_account():
     profile = ig("GET", EXPECTED_ID, tok, {"fields": "id,username"})
     if str(profile.get("id", "")) != EXPECTED_ID or str(profile.get("username", "")).lower() != EXPECTED_USER:
         raise RuntimeError("SAFE STOP: token is not authorised for @oddnews73")
-    print("Read-only Instagram identity check passed: @oddnews73")
+    capacity = ig("GET", EXPECTED_ID + "/content_publishing_limit", tok)
+    if not isinstance(capacity.get("data"), list):
+        raise RuntimeError("SAFE STOP: publishing-capability check returned an unexpected response")
+    print(f"Read-only Instagram identity check passed: @oddnews73 via {API_HOST}")
+    print("Read-only publishing-capability check passed; no media container was created")
     return tok
 
 
@@ -409,6 +478,10 @@ def preflight(site_url):
     rec = current(st)
     if rec.get("demo") or rec["status"] != "pending":
         raise RuntimeError("Only a pending, non-demo post may be published")
+    if not rec.get("approved_digest") or not hmac.compare_digest(
+        rec["approved_digest"], approval_digest(rec)
+    ):
+        raise RuntimeError("SAFE STOP: draft is not bound to an exact human approval")
     if not site_url.startswith("https://"):
         raise RuntimeError("Site URL must be HTTPS")
     # Ensure the image URL is on the intended GitHub Pages host.
@@ -416,12 +489,25 @@ def preflight(site_url):
     if host != "bhgat9-web.github.io" or not urlparse(site_url).path.startswith("/oddnews73-auto/"):
         raise RuntimeError("SAFE STOP: unexpected image-host domain or path")
     image_url = site_url.rstrip("/") + "/posts/" + rec["slug"] + ".jpg"
-    r = requests.get(image_url, timeout=20, stream=True)
+    r = requests.get(image_url, timeout=20)
     r.raise_for_status()
     ctype = r.headers.get("content-type", "").lower()
-    r.close()
     if "image/jpeg" not in ctype:
         raise RuntimeError("Public Instagram image is not a JPEG")
+    if len(r.content) > 8_000_000:
+        raise RuntimeError("Public Instagram image is unexpectedly large")
+    try:
+        with Image.open(io.BytesIO(r.content)) as img:
+            img.verify()
+        with Image.open(io.BytesIO(r.content)) as img:
+            if img.format != "JPEG" or img.size != (1080, 1350):
+                raise RuntimeError("Public image must be the approved 1080x1350 JPEG")
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("Public Instagram image is invalid") from exc
+    local_bytes = (SITE / "posts" / (rec["slug"] + ".jpg")).read_bytes()
+    if not hmac.compare_digest(hashlib.sha256(r.content).hexdigest(),
+                               hashlib.sha256(local_bytes).hexdigest()):
+        raise RuntimeError("SAFE STOP: public JPEG differs from the approved file")
     verify_account()
     st["verified_instagram_id"] = EXPECTED_ID
     rec["image_url"] = image_url
@@ -460,6 +546,11 @@ def publish():
         did_call_publish = True
         result = ig("POST", ig_id + "/media_publish", tok, {"creation_id": cid})
         rec["instagram_media_id"] = str(result["id"])
+        posted = ig("GET", rec["instagram_media_id"], tok,
+                    {"fields": "id,username,permalink"})
+        if str(posted.get("username", "")).lower() != EXPECTED_USER:
+            raise RuntimeError("SAFE STOP: published media owner is not @oddnews73")
+        rec["instagram_permalink"] = str(posted.get("permalink", ""))
         rec["status"] = "posted"
         rec["posted_utc"] = NOW().isoformat()
         print("Instagram published media:", rec["instagram_media_id"])
@@ -467,18 +558,25 @@ def publish():
         rec["status"] = "needs_review" if did_call_publish else "not_published"
         rec["error"] = str(exc)[:240]
         print("SAFE STOP: " + rec["error"], file=sys.stderr)
+        raise RuntimeError(rec["error"]) from exc
     finally:
         save(st)
 
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=("prepare", "check-account", "preflight", "publish", "status"))
+    p.add_argument("command", choices=("prepare", "review", "approve", "check-account", "preflight", "publish", "status"))
     p.add_argument("--demo", action="store_true")
     p.add_argument("--site-url", default="")
+    p.add_argument("--slug", default="")
+    p.add_argument("--approval-digest", default="")
     a = p.parse_args()
     if a.command == "prepare":
         prepare(a.demo)
+    elif a.command == "review":
+        review(a.slug)
+    elif a.command == "approve":
+        approve(a.slug, a.approval_digest)
     elif a.command == "check-account":
         verify_account()
     elif a.command == "preflight":
@@ -496,3 +594,4 @@ if __name__ == "__main__":
     except Exception as exc:
         print("ERROR:", str(exc), file=sys.stderr)
         sys.exit(1)
+
