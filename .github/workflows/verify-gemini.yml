@@ -1,0 +1,68 @@
+name: ODD News 73 - Verify Gemini Key
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Test free-tier AI writing access
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Gemini 2.5 Flash-Lite API (no Instagram)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          key = os.environ.get("GEMINI_API_KEY", "").strip()
+          if not key:
+              print("FAIL: GEMINI_API_KEY not found in repository Actions Secrets.")
+              sys.exit(1)
+
+          url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+          payload = {
+              "contents": [{"parts": [{"text": "Connection test: reply with only the word READY."}]}],
+              "generationConfig": {"temperature": 0, "maxOutputTokens": 40}
+          }
+          req = Request(
+              url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json", "x-goog-api-key": key},
+              method="POST"
+          )
+          try:
+              with urlopen(req, timeout=30) as response:
+                  data = json.loads(response.read())
+          except HTTPError as error:
+              print(f"FAIL: Gemini API returned HTTP {error.code}.")
+              if error.code == 429:
+                  print("Free-tier quota or rate limit reached; no Instagram action was taken.")
+              elif error.code in (401, 403):
+                  print("Check the key, API access, project and model eligibility.")
+              elif error.code == 404:
+                  print("Check whether the selected Gemini model is available.")
+              sys.exit(1)
+          except (URLError, TimeoutError, ValueError) as error:
+              print(f"FAIL: Gemini response could not be verified ({type(error).__name__}).")
+              sys.exit(1)
+
+          response_text = "".join(
+              part.get("text", "") for part in data.get("candidates", [{}])[0]
+              .get("content", {}).get("parts", [])
+          ).strip()
+          if "READY" not in response_text.upper():
+              print("FAIL: API returned no usable text. No Instagram action was taken.")
+              sys.exit(1)
+          print("PASS: Gemini 2.5 Flash-Lite returned generated text.")
+          print("PASS: Key is accessible to GitHub Actions.")
+          print("No Instagram account was accessed and no post was published.")
+          PY
