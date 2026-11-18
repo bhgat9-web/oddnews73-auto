@@ -19,7 +19,7 @@ jobs:
       - name: Verify @oddnews73 (READ ONLY — no posting)
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          IG_API_HOST: graph.instagram.com
+          IG_API_HOST: graph.facebook.com
           IG_API_VERSION: v27.0
           LIVE_PUBLISH: 'false'
         run: python src/oddnews73.py check-account
