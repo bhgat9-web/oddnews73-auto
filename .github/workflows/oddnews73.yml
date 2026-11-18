@@ -2,6 +2,8 @@ name: ODD News 73 - Prepare Three Daily Drafts (Publishing Disabled)
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'src/**'
       - 'tests/**'
