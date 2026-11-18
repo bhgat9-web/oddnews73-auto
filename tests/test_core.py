@@ -161,6 +161,60 @@ class PublishingSafetyTests(unittest.TestCase):
             self.assertEqual(bundle["slug"], rec["slug"])
             self.assertEqual(len(bundle["approval_digest"]), 64)
 
+
+class AutomaticPublishingTests(unittest.TestCase):
+    def test_auto_binding_requires_explicit_mode_and_unchanged_content(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            site = Path(tmp)
+            (site / "posts").mkdir()
+            rec = {"slug": "0123456789abcdef", "title": "Rare fossil",
+                   "source": "NASA", "source_url": "https://nasa.gov/story",
+                   "caption": "Source-linked report", "demo": False}
+            Image.new("RGB", (1080, 1350)).save(site / "posts" / (rec["slug"] + ".jpg"))
+            with patch.object(app, "SITE", site):
+                rec["automatic_digest"] = app.approval_digest(rec)
+                with patch.dict("os.environ", {"AUTO_PUBLISH": "false"}):
+                    with self.assertRaises(RuntimeError):
+                        app.validate_publication_authorization(rec)
+                with patch.dict("os.environ", {"AUTO_PUBLISH": "true"}):
+                    app.validate_publication_authorization(rec)
+                    rec["caption"] = "Changed after preparation"
+                    with self.assertRaises(RuntimeError):
+                        app.validate_publication_authorization(rec)
+
+    def test_automatic_prepare_binds_new_post_and_skips_duplicates(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            site = root / "site"
+            (site / "posts").mkdir(parents=True)
+            story = {"title": "Rare fossil found", "source": "NASA",
+                     "link": "https://nasa.gov/story",
+                     "published_utc": "2026-11-18T00:00:00+00:00"}
+            def render(story, path, demo):
+                Image.new("RGB", (1080, 1350)).save(path)
+            with patch.object(app, "STATE", root / "state.json"), \
+                    patch.object(app, "RUN", root / "run.json"), \
+                    patch.object(app, "SITE", site), \
+                    patch.object(app, "choose", return_value=story) as choose, \
+                    patch.object(app, "caption", return_value="Source-linked report"), \
+                    patch.object(app, "graphic", side_effect=render), \
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true"}):
+                app.prepare()
+                rec = app.load()["entries"][0]
+                self.assertEqual(rec["status"], "pending")
+                app.validate_publication_authorization(rec)
+                app.prepare()
+                self.assertEqual(choose.call_count, 1)
+                self.assertEqual(len(app.load()["entries"]), 1)
+                st = app.load()
+                st["entries"][0]["status"] = "needs_review"
+                app.save(st)
+                app.prepare()
+                self.assertFalse(app.RUN.exists())
+                self.assertEqual(choose.call_count, 1)
+
 if __name__ == "__main__":
     unittest.main()
 
