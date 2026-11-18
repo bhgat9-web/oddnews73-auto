@@ -10,7 +10,7 @@ on:
       - 'requirements.txt'
       - '.github/workflows/oddnews73.yml'
   schedule:
-    - cron: '7 9,14,20 * * *'
+    - cron: '7 9,14,21 * * *'
       timezone: Asia/Kolkata
   workflow_dispatch:
     inputs:
