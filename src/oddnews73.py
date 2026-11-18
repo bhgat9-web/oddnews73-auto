@@ -363,7 +363,7 @@ def current(st):
     if not RUN.is_file():
         raise RuntimeError("Missing run.json")
     slug = json.loads(RUN.read_text(encoding="utf-8"))["slug"]
-    rec = next((x for x in st["entries"] if x["slug"] == slug), None)
+    rec = next((x for x in reversed(st["entries"]) if x["slug"] == slug), None)
     if not rec:
         raise RuntimeError("Current record not found")
     return rec
