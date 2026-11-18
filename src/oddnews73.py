@@ -336,6 +336,7 @@ def sources_index(st):
 
 
 def prepare(demo=False):
+    RUN.unlink(missing_ok=True)
     st = load()
     if not demo and os.getenv("LIVE_PUBLISH", "false").lower() == "true":
         if any(x["status"] in ("in_flight", "needs_review") for x in st["entries"]):
@@ -362,6 +363,9 @@ def prepare(demo=False):
            "published_utc": story["published_utc"], "created_utc": NOW().isoformat(),
            "caption": caption(story, demo), "demo": bool(demo)}
     graphic(story, SITE / "posts" / (slug + ".jpg"), demo)
+    if status == "pending" and os.getenv("AUTO_PUBLISH", "").lower() == "true":
+        rec["automatic_digest"] = approval_digest(rec)
+        rec["authorization"] = "owner-enabled recurring publishing"
     (SITE / "posts" / (slug + ".json")).write_text(
         json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
@@ -487,16 +491,23 @@ def verify_account():
     return tok
 
 
+def validate_publication_authorization(rec):
+    """Keep manual approval and owner-enabled automation distinct."""
+    automatic = os.getenv("AUTO_PUBLISH", "").lower() == "true"
+    digest = rec.get("automatic_digest") if automatic else rec.get("approved_digest")
+    if rec.get("demo") or not allowed(rec.get("source_url", "")):
+        raise RuntimeError("SAFE STOP: invalid automatic/manual publication source")
+    if not digest or not hmac.compare_digest(digest, approval_digest(rec)):
+        raise RuntimeError("SAFE STOP: content differs from its publication authorization")
+
+
 def preflight(site_url):
     live()
     st = load()
     rec = current(st)
     if rec.get("demo") or rec["status"] != "pending":
         raise RuntimeError("Only a pending, non-demo post may be published")
-    if not rec.get("approved_digest") or not hmac.compare_digest(
-        rec["approved_digest"], approval_digest(rec)
-    ):
-        raise RuntimeError("SAFE STOP: draft is not bound to an exact human approval")
+    validate_publication_authorization(rec)
     if not site_url.startswith("https://"):
         raise RuntimeError("Site URL must be HTTPS")
     # Ensure the image URL is on the intended GitHub Pages host.
