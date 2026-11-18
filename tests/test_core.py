@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 import sys
@@ -78,5 +79,80 @@ class PublishingSafetyTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     app.preflight("https://example.com")
 
+    def test_meta_api_host_is_allowlisted(self):
+        with patch.object(app, "API_HOST", "attacker.example"):
+            with self.assertRaisesRegex(RuntimeError, "unsupported Meta API host"):
+                app.ig("GET", "me", "secret")
+
+    def test_approval_binds_exact_caption_and_jpeg(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state.json"
+            run = root / "run.json"
+            site = root / "site"
+            (site / "posts").mkdir(parents=True)
+            rec = {"slug": "0123456789abcdef", "title": "Rare bird mystery",
+                   "status": "draft", "source": "NASA",
+                   "source_url": "https://nasa.gov/story", "caption": "Exact caption",
+                   "demo": False}
+            state.write_text(json.dumps({"entries": [rec], "seen_links": []}))
+            Image.new("RGB", (1080, 1350)).save(site / "posts" / "0123456789abcdef.jpg", "JPEG")
+            with patch.object(app, "STATE", state), patch.object(app, "RUN", run), \
+                    patch.object(app, "SITE", site), \
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "true"}):
+                digest = app.approval_digest(rec)
+                with self.assertRaisesRegex(RuntimeError, "approval does not match"):
+                    app.approve(rec["slug"], "0" * 64)
+                self.assertEqual(json.loads(state.read_text())["entries"][0]["status"], "draft")
+                app.approve(rec["slug"], digest)
+                saved = json.loads(state.read_text())["entries"][0]
+                self.assertEqual(saved["status"], "pending")
+                self.assertEqual(saved["approved_digest"], digest)
+                self.assertEqual(json.loads(run.read_text())["slug"], rec["slug"])
+
+    def test_publish_failure_is_not_reported_as_success(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state.json"
+            run = root / "run.json"
+            rec = {"slug": "0123456789abcdef", "title": "Rare bird mystery",
+                   "status": "in_flight", "source": "NASA",
+                   "source_url": "https://nasa.gov/story", "caption": "Exact caption",
+                   "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/x.jpg",
+                   "demo": False}
+            state.write_text(json.dumps({"entries": [rec], "seen_links": [],
+                                         "verified_instagram_id": app.EXPECTED_ID}))
+            run.write_text(json.dumps({"slug": rec["slug"]}))
+            with patch.object(app, "STATE", state), patch.object(app, "RUN", run), \
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "true"}), \
+                    patch.object(app, "verify_account", return_value="secret"), \
+                    patch.object(app, "ig", side_effect=RuntimeError("simulated failure")):
+                with self.assertRaisesRegex(RuntimeError, "simulated failure"):
+                    app.publish()
+            self.assertEqual(json.loads(state.read_text())["entries"][0]["status"],
+                             "not_published")
+
+    def test_review_bundle_contains_digest(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state.json"
+            site = root / "site"
+            (site / "posts").mkdir(parents=True)
+            rec = {"slug": "0123456789abcdef", "title": "Rare bird mystery",
+                   "status": "draft", "source": "NASA",
+                   "source_url": "https://nasa.gov/story", "caption": "Exact caption",
+                   "demo": False}
+            state.write_text(json.dumps({"entries": [rec], "seen_links": []}))
+            Image.new("RGB", (1080, 1350)).save(site / "posts" / "0123456789abcdef.jpg", "JPEG")
+            with patch.object(app, "STATE", state), patch.object(app, "SITE", site), \
+                    patch("sys.stdout", new_callable=StringIO) as output:
+                app.review(rec["slug"])
+            bundle = json.loads(output.getvalue())
+            self.assertEqual(bundle["slug"], rec["slug"])
+            self.assertEqual(len(bundle["approval_digest"]), 64)
+
 if __name__ == "__main__":
     unittest.main()
+
