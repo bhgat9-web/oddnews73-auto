@@ -71,7 +71,10 @@ class EditorialSafetyTests(unittest.TestCase):
         with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-test-key",
                                         "GEMINI_MODEL": "gemini-3.5-flash-lite"}), \
                 patch.object(app.requests, "post", side_effect=[not_found, success]) as post:
-            self.assertEqual(app.caption(story), long_caption)
+            generated = app.caption(story)
+            self.assertTrue(generated.startswith(long_caption))
+            self.assertIn(story["link"], generated)
+            self.assertIn("#ODDNews73", generated)
         self.assertEqual(post.call_count, 2)
         self.assertIn("gemini-3.5-flash-lite", post.call_args_list[0].args[0])
         self.assertIn("gemini-3.1-flash-lite", post.call_args_list[1].args[0])
