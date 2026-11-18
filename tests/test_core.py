@@ -36,14 +36,21 @@ class EditorialSafetyTests(unittest.TestCase):
             self.assertNotIn("<script>", content)
             self.assertIn("&lt;script&gt;", content)
 
-    def test_source_based_caption_has_source(self):
+    def test_missing_ai_key_prevents_generic_caption(self):
         story = {"title": "Rare bird mystery", "source": "NASA",
                  "link": "https://nasa.gov/test", "excerpt": "Something unusual",
                  "published_utc": "2026-11-17T00:00:00+00:00"}
         with patch.dict("os.environ", {"GEMINI_API_KEY": ""}):
-            result = app.caption(story)
-        self.assertIn(story["link"], result)
-        self.assertIn("not independently verified", result)
+            self.assertIsNone(app.caption(story))
+
+    def test_failed_ai_request_prevents_caption(self):
+        import requests
+        story = {"title": "Rare bird mystery", "source": "NASA",
+                 "link": "https://nasa.gov/test", "excerpt": "Something unusual",
+                 "published_utc": "2026-11-17T00:00:00+00:00"}
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-test-key"}), \
+                patch.object(app.requests, "post", side_effect=requests.Timeout):
+            self.assertIsNone(app.caption(story))
 
     def test_poster_is_correct_4_by_5_size(self):
         from PIL import Image
