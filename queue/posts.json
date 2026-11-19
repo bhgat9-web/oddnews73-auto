@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "posts": [
+    {
+      "title": "Tiny dog. Wild ancestry.",
+      "source_url": "https://www.smithsonianmag.com/smart-news/chihuahuas-seem-to-carry-a-tiny-bit-of-coyote-dna-but-thats-probably-not-why-they-have-fearless-personalities-180989886/",
+      "published_utc": "2026-11-18T15:00:00+00:00",
+      "source": "Smithsonian Smart News",
+      "expires_utc": "2026-11-21T12:00:00+00:00",
+      "ready": true,
+      "caption": "Tiny dog, unexpected family history. 🐕\n\nA genetic study found traces of coyote ancestry in Chihuahuas, estimated at roughly 0.1% of their genome. The link appears to come from interbreeding between coyotes and ancestors of domestic dogs long ago.\n\nThat does not mean a Chihuahua is a miniature coyote. Researchers say this small genetic contribution probably does not explain the breed’s bold personality. More research is needed to pin down the ancestral connection.\n\nSource: Smithsonian · 18 Nov 2026\nhttps://www.smithsonianmag.com/smart-news/chihuahuas-seem-to-carry-a-tiny-bit-of-coyote-dna-but-thats-probably-not-why-they-have-fearless-personalities-180989886/\n\nVisual: AI-generated illustration, not a photograph.\n\n#ODDNews73 #StrangeWorld #Discoveries",
+      "slug": "b54bb9936bde462d",
+      "image_sha256": "9ba12565aed64769c0851e0226ffe5b55f3c8d4879f7f89a6fe2c34d29e061a2",
+      "bundle_digest": "12bd18502518fc71fbf29f426c82182944174375fd52bca27c2160d5664eedee"
+    },
+    {
+      "title": "Earth’s missing chapters",
+      "source_url": "https://www.smithsonianmag.com/smart-news/more-than-a-billion-years-worth-of-rock-layers-are-missing-from-earths-geologic-record-scientists-say-they-may-finally-know-why-180989870/",
+      "published_utc": "2026-11-16T12:00:00+00:00",
+      "source": "Smithsonian Smart News",
+      "expires_utc": "2026-11-21T12:00:00+00:00",
+      "ready": true,
+      "caption": "Earth’s history has missing chapters. 🪨\n\nIn some places, gaps in the rock record span more than a billion years. This geological puzzle is called the Great Unconformity.\n\nNew computer simulations suggest a possible sequence: movement deep in the mantle raised ancient continental regions, then ice sheets eroded exposed rock before the land sank again. The study supports a proposed explanation; it does not make every detail of this long-running mystery settled.\n\nThe illustration combines geological ideas and is not a reconstruction of a specific ancient landscape.\n\nSource: Smithsonian · 16 Nov 2026\nhttps://www.smithsonianmag.com/smart-news/more-than-a-billion-years-worth-of-rock-layers-are-missing-from-earths-geologic-record-scientists-say-they-may-finally-know-why-180989870/\n\nVisual: AI-generated illustration, not a photograph.\n\n#ODDNews73 #StrangeWorld #Discoveries",
+      "slug": "1c533f5e1124606e",
+      "image_sha256": "0e48c4f044c31fb9576ea70704ec9b0a6241c324aff6e0f74b687f1c4375a3af",
+      "bundle_digest": "3ce8b5c29314265cf29c6d4fee8954af69beff097e42d114b7ecadc510abb1ce"
+    },
+    {
+      "title": "One life. Two ways to live.",
+      "source_url": "https://www.smithsonianmag.com/smart-news/from-a-small-island-in-denmark-this-man-lived-through-the-transition-from-hunter-gathering-to-farming-6000-years-ago-180989889/",
+      "published_utc": "2026-11-18T13:15:00+00:00",
+      "source": "Smithsonian Smart News",
+      "expires_utc": "2026-11-21T12:00:00+00:00",
+      "ready": true,
+      "caption": "The shift to farming may have unfolded within one man’s lifetime. 🌾\n\nA new analysis of the approximately 6,000-year-old Rødhals Man, found on a Danish island, suggests his diet changed as he grew up. He ate mostly seafood in childhood, then added more land-based protein from around age 11.\n\nResearchers interpret the evidence as a possible sign that he interacted with early farming communities while retaining parts of a foraging way of life. The scene shown is an imaginative illustration, not a reconstruction of his appearance or home.\n\nSource: Smithsonian · 18 Nov 2026\nhttps://www.smithsonianmag.com/smart-news/from-a-small-island-in-denmark-this-man-lived-through-the-transition-from-hunter-gathering-to-farming-6000-years-ago-180989889/\n\nVisual: AI-generated illustration, not a photograph.\n\n#ODDNews73 #StrangeWorld #Discoveries",
+      "slug": "114fb10d08fdfb3a",
+      "image_sha256": "930afa057c67617f489210189981658b638761d23c530f85c8aba22012bb9ec9",
+      "bundle_digest": "6348350d3969c2702dfa24979b0fd44168e324421a544392dc187ab80730d3a0"
+    }
+  ]
+}

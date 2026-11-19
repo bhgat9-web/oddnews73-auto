@@ -13,8 +13,6 @@ jobs:
     env:
       LIVE_PUBLISH: 'false'
       AUTO_PUBLISH: 'false'
-      GEMINI_MODEL: gemini-3.5-flash-lite
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,11 +22,11 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run editorial and publishing safety tests
         run: python -m unittest discover -s tests -v
-      - name: Research and draft one actual story
+      - name: Preview the next prepared queue item
         shell: bash
         run: |
           set -o pipefail
-          python -u src/oddnews73.py prepare 2>&1 | tee preview-diagnostics.log
+          python -u src/oddnews73.py prepare-queued 2>&1 | tee preview-diagnostics.log
       - name: Inspect draft without contacting Instagram
         shell: bash
         run: |
@@ -39,7 +37,7 @@ jobs:
           run = Path("run.json")
           if not run.exists():
               print("PREVIEW NOT CREATED: inspect preview-diagnostics.log or the Research step above.")
-              print("No story was eligible, the source excerpt lacked enough detail, or Gemini failed editorial validation.")
+              print("The prepared queue is empty, already used, expired, or invalid. Prepare another batch in ChatGPT.")
               raise SystemExit(1)
           slug = json.loads(run.read_text())["slug"]
           record = json.loads(Path("site/posts", slug + ".json").read_text())
@@ -62,4 +60,4 @@ jobs:
             preview-diagnostics.log
             site/posts/*.jpg
             site/posts/*.json
-          retention-days: 7
+          retention-days: 1
