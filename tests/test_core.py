@@ -57,14 +57,14 @@ class EditorialSafetyTests(unittest.TestCase):
         story = {"title": "Rare mysterious fossil", "source": "NASA",
                  "link": "https://nasa.gov/test", "excerpt": "An unusual discovery",
                  "published_utc": "2026-11-17T00:00:00+00:00"}
-        long_caption = (
+        prose = (
             "A remarkable fossil found beneath an ancient landscape has raised questions "
             "about the wildlife that lived there thousands of years ago. The source describes "
             "the remains as unusually preserved, and researchers are still investigating "
             "what they represent. The real story is worth examining carefully, because "
             "extraordinary claims require traceable evidence and responsible reporting. "
-            + story["link"] + " #ODDNews73"
         )
+        long_caption = prose + story["link"] + " #ODDNews73"
         not_found = Mock(status_code=404)
         success = Mock(status_code=200)
         success.json.return_value = {"candidates": [{"content": {"parts": [{"text": long_caption}]}}]}
@@ -72,9 +72,14 @@ class EditorialSafetyTests(unittest.TestCase):
                                         "GEMINI_MODEL": "gemini-3.5-flash-lite"}), \
                 patch.object(app.requests, "post", side_effect=[not_found, success]) as post:
             generated = app.caption(story)
-            self.assertTrue(generated.startswith(long_caption))
-            self.assertIn(story["link"], generated)
-            self.assertIn("#ODDNews73", generated)
+            expected = (
+                prose.strip() + "\n\nSource: NASA · 17 Nov 2026\n"
+                + story["link"]
+                + "\n\n#ODDNews73 #WeirdNews #StrangeWorld #Discoveries"
+            )
+            self.assertEqual(generated, expected)
+            self.assertEqual(generated.count(story["link"]), 1)
+            self.assertEqual(generated.count("#ODDNews73"), 1)
         self.assertEqual(post.call_count, 2)
         self.assertIn("gemini-3.5-flash-lite", post.call_args_list[0].args[0])
         self.assertIn("gemini-3.1-flash-lite", post.call_args_list[1].args[0])
