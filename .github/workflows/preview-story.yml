@@ -2,6 +2,12 @@ name: ODD News 73 - Preview Real Story
 
 on:
   workflow_dispatch:
+    inputs:
+      ai_visuals:
+        description: 'Use paid story-specific AI artwork for this draft only'
+        type: boolean
+        default: false
+        required: false
 
 permissions:
   contents: read
@@ -25,6 +31,8 @@ jobs:
       - name: Run editorial and publishing safety tests
         run: python -m unittest discover -s tests -v
       - name: Research and draft one actual story
+        env:
+          AI_VISUALS_ENABLED: ${{ inputs.ai_visuals && 'true' || 'false' }}
         shell: bash
         run: |
           set -o pipefail
