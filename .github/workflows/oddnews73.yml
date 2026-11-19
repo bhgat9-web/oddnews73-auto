@@ -48,6 +48,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.5-flash-lite
+          AI_VISUALS_ENABLED: ${{ vars.ODDNEWS_AI_VISUALS == 'true' && 'true' || 'false' }}
           LIVE_PUBLISH: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
           AUTO_PUBLISH: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
         run: python src/oddnews73.py prepare ${{ github.event_name == 'push' && '--demo' || inputs.demo_mode && '--demo' || '' }}

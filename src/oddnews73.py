@@ -315,6 +315,14 @@ def add_official_logo(img, xy=(45, 35), size=190):
 
 
 def graphic(story, path, demo=False):
+    if not demo and os.getenv("AI_VISUALS_ENABLED", "false").lower() == "true":
+        from editorial_visuals import generate_poster
+        generate_poster(story, path, font, add_official_logo)
+        return
+    legacy_graphic(story, path, demo)
+
+
+def legacy_graphic(story, path, demo=False):
     w, h = 1080, 1350
     title = story["title"]
     kind = "ODD DISCOVERIES"
@@ -425,11 +433,17 @@ def prepare(demo=False):
         return
     slug = hashlib.sha256(story["link"].encode()).hexdigest()[:16]
     status = "pending" if os.getenv("LIVE_PUBLISH", "false").lower() == "true" and not demo else "draft"
+    if not demo and os.getenv("AI_VISUALS_ENABLED", "false").lower() == "true":
+        generated_caption += "\n\nVisual: AI-generated illustration, not a photograph."
     rec = {"slug": slug, "title": story["title"], "status": status,
            "source": story["source"], "source_url": story["link"],
            "published_utc": story["published_utc"], "created_utc": NOW().isoformat(),
            "caption": generated_caption, "demo": bool(demo)}
-    graphic(story, SITE / "posts" / (slug + ".jpg"), demo)
+    try:
+        graphic({**story, "caption": generated_caption}, SITE / "posts" / (slug + ".jpg"), demo)
+    except RuntimeError:
+        print("Skipping slot: story-specific artwork was not produced; no generic substitute.")
+        return
     if status == "pending" and os.getenv("AUTO_PUBLISH", "").lower() == "true":
         rec["automatic_digest"] = approval_digest(rec)
         rec["authorization"] = "owner-enabled recurring publishing"
