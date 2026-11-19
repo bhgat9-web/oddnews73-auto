@@ -50,7 +50,7 @@ jobs:
           LIVE_PUBLISH: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
           AUTO_PUBLISH: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ] || [ "${{ inputs.demo_mode }}" = "true" ]; then
+          if [ "${{ inputs.demo_mode }}" = "true" ]; then
             python src/oddnews73.py prepare --demo
           else
             python src/oddnews73.py prepare-queued
