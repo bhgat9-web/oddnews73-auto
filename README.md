@@ -8,9 +8,13 @@ image-generation API subscription.
 1. Ask ChatGPT to research a batch of unusual stories and make branded illustrations.
 2. Review the finished images and source-linked captions; add the bundles to
    queue/posts.json and queue/images/<slug>.jpg through a pull request.
-3. Scheduled runs at 09:07, 14:07 and 21:07 Asia/Kolkata take one ready, unexpired
-   item. GitHub scheduling can be delayed.
-4. An empty queue skips the slot. It never falls back to generic graphics or a paid API.
+3. Scheduled runs target 09:07, 14:07 and 21:07 Asia/Kolkata, with backup
+   checks at 09:27, 14:27 and 21:27. A successful first post blocks the
+   backup from posting a duplicate in the same local-time slot. GitHub
+   scheduling is best-effort and neither attempt is guaranteed to start.
+4. An empty or invalid queue skips the slot and marks the scheduled workflow
+   **failed** with an explanatory reason; it never substitutes generic content.
+   A backup checking a slot already published is recorded as a safe success.
 
 The initial batch contains three original AI-illustrated stories: Chihuahua/coyote
 ancestry, missing geological layers, and the Rødhals Man's changing diet.
@@ -50,3 +54,14 @@ Run: python -m unittest discover -s tests -v
 Preview: python src/oddnews73.py prepare-queued
 The Preview Real Story workflow has no Instagram or Gemini token and cannot publish.
 The old manual Gemini diagnostics remain separate and are not part of this free pipeline.
+
+## Schedule limitations and diagnostics
+- GitHub Actions cannot guarantee minute-accurate scheduling. A delayed trigger
+  arriving outside the planned one-hour slot fails safely rather than posting
+  at an unexpected hour.
+- If the initial slot already posted successfully, a backup attempt logs
+  `already_posted` and exits without consuming another queue item.
+- When no eligible prepared post exists, the scheduled workflow is **red**,
+  not green, and its logs name `queue_exhausted` or `queue_missing`.
+- GitHub will not automatically refill the artwork queue; that requires a
+  separate image and editorial production system. Keep enough posts ready.
