@@ -1,9 +1,6 @@
 name: ODD News 73 - Preview Real Story
 
 on:
-  push:
-    branches: ['fix/caption-test-20261119']
-    paths: ['.github/workflows/preview-story.yml', 'src/**', 'tests/**']
   workflow_dispatch:
 
 permissions:
