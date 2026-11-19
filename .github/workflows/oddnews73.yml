@@ -11,7 +11,7 @@ on:
       - 'requirements.txt'
       - '.github/workflows/oddnews73.yml'
   schedule:
-    - cron: '7 9,14,21 * * *'
+    - cron: '7,27 9,14,21 * * *'
       timezone: Asia/Kolkata
   workflow_dispatch:
     inputs:
@@ -63,6 +63,33 @@ jobs:
           else
             echo "prepared=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Report skipped or missed scheduled slots accurately
+        if: github.event_name == 'schedule' && steps.detect.outputs.prepared != 'true'
+        env:
+          SLOT_STATUS_FILE: schedule_result.json
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          path = Path(os.environ["SLOT_STATUS_FILE"])
+          outcome = json.loads(path.read_text()) if path.exists() else {}
+          status = outcome.get("status", "unknown")
+          slot = outcome.get("slot", "unknown")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(f"### ODD News 73 scheduled slot: {slot}\n\n")
+              summary.write(f"**Outcome:** {status}\n")
+          if status == "already_posted":
+              print("BACKUP RUN SUCCESS: this slot already has a published post.")
+              sys.exit(0)
+          print("POST NOT PUBLISHED: no valid candidate prepared.")
+          print("Reason:", status)
+          print("Slot:", slot)
+          sys.exit(1)
+          PY
+
       - name: Persist draft and history
         if: steps.detect.outputs.prepared == 'true'
         run: |
