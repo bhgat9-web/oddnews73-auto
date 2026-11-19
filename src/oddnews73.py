@@ -589,8 +589,7 @@ def prepare_queued():
         sources_index(st)
         RUN.write_text(json.dumps({"slug": slug}), encoding="utf-8")
         if live_mode and strict_schedule:
-            if strict_schedule:
-                record_slot_result("prepared", slot)
+            record_slot_result("prepared", slot)
         print("Prepared queued post:", rec["title"], rec["status"])
         return
     print("No unused, unexpired queued posts. No post created; refill the queue.")
