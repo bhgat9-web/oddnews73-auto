@@ -1,32 +1,52 @@
-# ODD News 73 — Instagram automation
+# ODD News 73 — prepared-image publishing
 
-Automatic publishing was enabled by the account owner on 18 November 2026 after the supervised first post succeeded on @oddnews73.
+Scheduled publishing uses images and captions prepared in ChatGPT. It makes
+**no generative AI API calls**, so it does not require Gemini billing or an
+image-generation API subscription.
 
-## Schedule and operation
+## How it works
+1. Ask ChatGPT to research a batch of unusual stories and make branded illustrations.
+2. Review the finished images and source-linked captions; add the bundles to
+   queue/posts.json and queue/images/<slug>.jpg through a pull request.
+3. Scheduled runs at 09:07, 14:07 and 21:07 Asia/Kolkata take one ready, unexpired
+   item. GitHub scheduling can be delayed.
+4. An empty queue skips the slot. It never falls back to generic graphics or a paid API.
 
-The workflow runs daily at approximately **09:07, 14:07 and 20:07 Asia/Kolkata**. Each scheduled run selects one new source-linked story, generates a branded 1080×1350 JPEG and caption, deploys the image to GitHub Pages, verifies the exact image and Instagram account, and publishes one post. A slot may be skipped if no suitable recent story is available. GitHub may delay scheduled runs.
+The initial batch contains three original AI-illustrated stories: Chihuahua/coyote
+ancestry, missing geological layers, and the Rødhals Man's changing diet.
+The already-published manuscript story is deliberately excluded.
+These illustrations were generated with ChatGPT's built-in image tool, not Gemini.
 
-Push-triggered runs generate a fictional demo only. Manually running this workflow prepares a draft (or a demo if selected); it does not publish. The separate supervised first-post workflow still requires an exact human approval digest.
+## What “free” means here
+- This public repository uses standard GitHub-hosted Linux runners, whose compute
+  is free: https://docs.github.com/en/actions/concepts/billing-and-usage
+- No external AI generation service is called by the scheduled or preview workflows.
+- Creating/refilling batches here uses your existing ChatGPT plan and image limits;
+  unlimited free image generation is not promised.
+- Artifact storage and other GitHub quotas still apply. Preview artifacts are retained
+  for one day; keep usage within the account's included allowances.
+- This is automatic *publishing*, not unattended creation of unlimited fresh images.
+  Refill the queue here when it runs out; at three posts per day this batch covers
+  three posting slots.
 
-The official owner-supplied logo at `assets/odd-news-73-logo.png` is composited into every generated post. Automatic artwork currently uses the procedural branded template; the detailed archaeology artwork for the first post was custom-made separately.
+## Queue contract
+Each ready entry includes title, caption, source, source_url, published_utc,
+expires_utc, the source-derived 16-character slug, image_sha256 and bundle_digest.
+The bundle digest covers the content fields and image hash; it detects accidental
+edits and is not a cryptographic signature from an independent reviewer.
+The fixed image path is queue/images/<slug>.jpg: JPEG, RGB, 1080×1350, under 8 MB.
+Use the official logo, label AI illustrations and link the source in the caption.
+Keep expiry no later than seven days after source publication. Recheck facts before refill.
+Prepared bundles expire; stale news is not silently posted.
 
-## Publication safeguards
+## Safety and testing
+A preview neither publishes nor consumes the item. Scheduled preparation stores
+the exact-byte publication authorization and a pending record. Existing duplicate,
+account, image checksum and committed in-flight safeguards remain active.
+An ambiguous publication stops subsequent posting for review.
+The queue never automatically retries a posted or failed item.
 
-- Automatic authorization binds the exact caption, source and image bytes and is accepted only when the scheduled job explicitly sets `AUTO_PUBLISH=true`.
-- Manual approval and automatic authorization are stored separately.
-- Source allowlisting, link/headline duplicate checks and the posted history remain active.
-- Fictional demos cannot publish.
-- The public JPEG must match the local file and be 1080×1350.
-- Every post verifies Instagram account ID `17841472407525134` and username `oddnews73`.
-- An in-flight marker is committed before publication. Ambiguous results stop later automatic runs until reviewed; they are never blindly retried.
-- Jobs that update post state share one concurrency group.
-
-## Pause publishing
-
-In GitHub Actions, open **ODD News 73 - Automatic Instagram Publishing**, choose the workflow menu and **Disable workflow**. This stops future scheduled runs. An already running job must be checked separately.
-
-## Credentials and integration
-
-The successful supervised post used the Meta Facebook Graph host `graph.facebook.com` with `instagram_content_publish`. Credentials are read only from GitHub Actions Secrets (`INSTAGRAM_ACCESS_TOKEN`, and optional `GEMINI_API_KEY` for caption generation). Never commit credentials or paste them in chat. The read-only verification workflow checks identity and publishing-capability access without creating media.
-
-Pages must use GitHub Actions deployment, and the publishing workflow needs repository contents write permission to preserve its publication history.
+Run: python -m unittest discover -s tests -v
+Preview: python src/oddnews73.py prepare-queued
+The Preview Real Story workflow has no Instagram or Gemini token and cannot publish.
+The old manual Gemini diagnostics remain separate and are not part of this free pipeline.

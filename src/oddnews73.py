@@ -445,6 +445,104 @@ def prepare(demo=False):
     print("Prepared:", rec["title"], status)
 
 
+
+def queue_digest(rec):
+    fields = ("slug", "title", "caption", "source", "source_url", "published_utc",
+              "expires_utc", "image_sha256")
+    payload = {key: rec[key] for key in fields}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                                    separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def prepare_queued():
+    """Use a prepared caption and exact JPEG; no research or AI API requests."""
+    RUN.unlink(missing_ok=True)
+    st = load()
+    live_mode = os.getenv("LIVE_PUBLISH", "false").lower() == "true"
+    if any(x.get("status") in ("in_flight", "needs_review") for x in st["entries"]):
+        print("SAFE STOP: unresolved publication; check state.json.")
+        return
+    if live_mode:
+        pending = next((x for x in st["entries"] if x.get("status") == "pending"), None)
+        if pending:
+            # Never switch modes or silently re-authorize a previously staged post.
+            validate_publication_authorization(pending)
+            RUN.write_text(json.dumps({"slug": pending["slug"]}), encoding="utf-8")
+            print("Existing authorized pending post selected.")
+            return
+    queue_file = ROOT / "queue" / "posts.json"
+    if not queue_file.is_file():
+        print("Queue empty: prepare another batch in ChatGPT. No post created.")
+        return
+    queue = json.loads(queue_file.read_text(encoding="utf-8"))
+    for item in queue.get("posts", []):
+        if item.get("ready") is not True:
+            continue
+        try:
+            url = item["source_url"]
+            slug = hashlib.sha256(url.encode()).hexdigest()[:16]
+            if slug != item["slug"] or not allowed(url):
+                raise ValueError("source or slug")
+            existing = [x for x in st["entries"] if x.get("slug") == slug
+                        or x.get("source_url") == url]
+            if url in st["seen_links"] or any(x.get("status") != "draft" for x in existing):
+                continue
+            now = NOW()
+            published = datetime.fromisoformat(item["published_utc"])
+            expires = datetime.fromisoformat(item["expires_utc"])
+            if published.tzinfo is None or expires.tzinfo is None:
+                raise ValueError("timezone")
+            if not published <= now < expires or now - published > timedelta(days=7):
+                continue
+            if expires - published > timedelta(days=7):
+                raise ValueError("expiry exceeds seven days")
+            if not 50 <= len(item["caption"]) <= 2200 or url not in item["caption"]:
+                raise ValueError("caption")
+            if "AI-generated illustration" not in item["caption"]:
+                raise ValueError("missing illustration disclosure")
+            if not hmac.compare_digest(queue_digest(item), item.get("bundle_digest", "")):
+                raise ValueError("bundle mismatch")
+            image_path = ROOT / "queue" / "images" / (slug + ".jpg")
+            data = image_path.read_bytes()
+            if not 0 < len(data) < 8_000_000:
+                raise ValueError("image size")
+            if not hmac.compare_digest(hashlib.sha256(data).hexdigest(), item["image_sha256"]):
+                raise ValueError("image mismatch")
+            with Image.open(io.BytesIO(data)) as image:
+                if image.format != "JPEG" or image.size != (1080, 1350):
+                    raise ValueError("image dimensions")
+                image.verify()
+        except (ValueError, KeyError, TypeError, OSError):
+            print("Skipping invalid queued bundle; review its metadata and JPEG.")
+            continue
+        rec = {key: item[key] for key in
+               ("slug", "title", "caption", "source", "source_url", "published_utc", "expires_utc")}
+        rec.update(status="pending" if live_mode else "draft", demo=False,
+                   created_utc=NOW().isoformat(), prepared_queue=True,
+                   queue_bundle_digest=item["bundle_digest"])
+        dest = SITE / "posts"
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / (slug + ".jpg")).write_bytes(data)
+        if live_mode:
+            if os.getenv("AUTO_PUBLISH", "false").lower() != "true":
+                raise RuntimeError("Queued scheduled posting requires AUTO_PUBLISH")
+            rec["automatic_digest"] = approval_digest(rec)
+            rec["authorization"] = "owner-enabled prepared-queue publishing"
+        st["entries"] = [x for x in st["entries"] if not
+                         (x.get("slug") == slug and x.get("status") == "draft")]
+        st["entries"] = (st["entries"] + [rec])[-300:]
+        if live_mode:
+            st["seen_links"] = (st["seen_links"] + [url])[-1200:]
+        save(st)
+        (dest / (slug + ".json")).write_text(
+            json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        sources_index(st)
+        RUN.write_text(json.dumps({"slug": slug}), encoding="utf-8")
+        print("Prepared queued post:", rec["title"], rec["status"])
+        return
+    print("No unused, unexpired queued posts. No post created; refill the queue.")
+
+
 def current(st):
     if not RUN.is_file():
         raise RuntimeError("Missing run.json")
@@ -560,6 +658,8 @@ def verify_account():
 
 def validate_publication_authorization(rec):
     """Keep manual approval and owner-enabled automation distinct."""
+    if rec.get("prepared_queue") and NOW() >= datetime.fromisoformat(rec["expires_utc"]):
+        raise RuntimeError("SAFE STOP: prepared queued post expired")
     automatic = os.getenv("AUTO_PUBLISH", "").lower() == "true"
     digest = rec.get("automatic_digest") if automatic else rec.get("approved_digest")
     if rec.get("demo") or not allowed(rec.get("source_url", "")):
@@ -658,7 +758,7 @@ def publish():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=("prepare", "review", "approve", "check-account", "preflight", "publish", "status"))
+    p.add_argument("command", choices=("prepare", "prepare-queued", "review", "approve", "check-account", "preflight", "publish", "status"))
     p.add_argument("--demo", action="store_true")
     p.add_argument("--site-url", default="")
     p.add_argument("--slug", default="")
@@ -666,6 +766,8 @@ def main():
     a = p.parse_args()
     if a.command == "prepare":
         prepare(a.demo)
+    elif a.command == "prepare-queued":
+        prepare_queued()
     elif a.command == "review":
         review(a.slug)
     elif a.command == "approve":
