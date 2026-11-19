@@ -201,6 +201,68 @@ class PublishingSafetyTests(unittest.TestCase):
             self.assertEqual(len(bundle["approval_digest"]), 64)
 
 
+class ScheduledBackupTests(unittest.TestCase):
+    def test_ist_slots_and_late_window(self):
+        ist = app.IST
+        for h in (9, 14, 21):
+            self.assertIsNone(
+                app.scheduled_slot(app.datetime(2026, 11, 20, h, 6, tzinfo=ist))
+            )
+            expected = f"2026-11-20T{h:02d}:07+0530"
+            self.assertEqual(
+                app.scheduled_slot(app.datetime(2026, 11, 20, h, 7, tzinfo=ist)),
+                expected
+            )
+            self.assertEqual(
+                app.scheduled_slot(app.datetime(2026, 11, 20, h, 27, tzinfo=ist)),
+                expected
+            )
+        self.assertIsNone(
+            app.scheduled_slot(app.datetime(2026, 11, 20, 17, 35, tzinfo=ist))
+        )
+
+    def test_backup_never_duplicates_successful_slot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state.json"
+            slot = "2026-11-20T21:07+0530"
+            state.write_text(json.dumps({
+                "entries": [{"status": "posted", "scheduled_slot": slot,
+                             "slug": "already-published"}],
+                "seen_links": []
+            }))
+            run = root / "run.json"
+            report = root / "schedule_result.json"
+            at_backup = app.datetime(2026, 11, 20, 21, 27, tzinfo=app.IST)
+            with patch.object(app, "STATE", state), \
+                    patch.object(app, "RUN", run), \
+                    patch.object(app, "SLOT_RESULT", report), \
+                    patch.object(app, "NOW", return_value=at_backup), \
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true"}):
+                app.prepare_queued()
+            self.assertFalse(run.exists())
+            self.assertEqual(json.loads(report.read_text())["status"], "already_posted")
+            self.assertEqual(len(json.loads(state.read_text())["entries"]), 1)
+
+    def test_outside_window_rejected_and_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state.json"
+            state.write_text(json.dumps({"entries": [], "seen_links": []}))
+            run = root / "run.json"
+            report = root / "schedule_result.json"
+            late = app.datetime(2026, 11, 20, 18, 0, tzinfo=app.IST)
+            with patch.object(app, "STATE", state), \
+                    patch.object(app, "RUN", run), \
+                    patch.object(app, "SLOT_RESULT", report), \
+                    patch.object(app, "NOW", return_value=late), \
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true"}):
+                with self.assertRaisesRegex(RuntimeError, "outside"):
+                    app.prepare_queued()
+            self.assertFalse(run.exists())
+            self.assertEqual(json.loads(report.read_text())["status"], "outside_window")
+
+
 class AutomaticPublishingTests(unittest.TestCase):
     def test_auto_binding_requires_explicit_mode_and_unchanged_content(self):
         from PIL import Image
