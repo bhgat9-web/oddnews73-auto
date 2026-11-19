@@ -403,21 +403,28 @@ def prepare(demo=False):
             RUN.write_text(json.dumps({"slug": pending["slug"]}), encoding="utf-8")
             print("Existing unattempted draft selected.")
             return
-    story = (
-        {"title": "This is a design demonstration, not a real news event",
-         "excerpt": "Fictional graphic", "source": "DEMO",
-         "link": "https://example.org/demo", "published_utc": NOW().isoformat()}
-        if demo else choose(st)
-    )
-    if not story:
-        print("No suitable recent attributed report; skipping slot.")
-        return
-    slug = hashlib.sha256(story["link"].encode()).hexdigest()[:16]
-    status = "pending" if os.getenv("LIVE_PUBLISH", "false").lower() == "true" and not demo else "draft"
-    generated_caption = caption(story, demo)
+    selection_state = {**st, "seen_links": list(st["seen_links"])}
+    generated_caption = None
+    for attempt in range(1 if demo else 3):
+        story = (
+            {"title": "This is a design demonstration, not a real news event",
+             "excerpt": "Fictional graphic", "source": "DEMO",
+             "link": "https://example.org/demo", "published_utc": NOW().isoformat()}
+            if demo else choose(selection_state)
+        )
+        if not story:
+            print("No suitable recent attributed report; skipping slot.")
+            return
+        generated_caption = caption(story, demo)
+        if generated_caption:
+            break
+        selection_state["seen_links"].append(story["link"])
+        print(f"Candidate {attempt + 1} rejected by editorial checks; trying another within the three-story limit.")
     if not generated_caption:
         print("Skipping this scheduled slot: no valid source-linked AI caption.")
         return
+    slug = hashlib.sha256(story["link"].encode()).hexdigest()[:16]
+    status = "pending" if os.getenv("LIVE_PUBLISH", "false").lower() == "true" and not demo else "draft"
     rec = {"slug": slug, "title": story["title"], "status": status,
            "source": story["source"], "source_url": story["link"],
            "published_utc": story["published_utc"], "created_utc": NOW().isoformat(),

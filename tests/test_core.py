@@ -57,14 +57,14 @@ class EditorialSafetyTests(unittest.TestCase):
         story = {"title": "Rare mysterious fossil", "source": "NASA",
                  "link": "https://nasa.gov/test", "excerpt": "An unusual discovery",
                  "published_utc": "2026-11-17T00:00:00+00:00"}
-        long_caption = (
+        prose = (
             "A remarkable fossil found beneath an ancient landscape has raised questions "
             "about the wildlife that lived there thousands of years ago. The source describes "
             "the remains as unusually preserved, and researchers are still investigating "
             "what they represent. The real story is worth examining carefully, because "
             "extraordinary claims require traceable evidence and responsible reporting. "
-            + story["link"] + " #ODDNews73"
         )
+        long_caption = prose + story["link"] + " #ODDNews73"
         not_found = Mock(status_code=404)
         success = Mock(status_code=200)
         success.json.return_value = {"candidates": [{"content": {"parts": [{"text": long_caption}]}}]}
@@ -72,9 +72,14 @@ class EditorialSafetyTests(unittest.TestCase):
                                         "GEMINI_MODEL": "gemini-3.5-flash-lite"}), \
                 patch.object(app.requests, "post", side_effect=[not_found, success]) as post:
             generated = app.caption(story)
-            self.assertTrue(generated.startswith(long_caption))
-            self.assertIn(story["link"], generated)
-            self.assertIn("#ODDNews73", generated)
+            expected = (
+                prose.strip() + "\n\nSource: NASA · 17 Nov 2026\n"
+                + story["link"]
+                + "\n\n#ODDNews73 #WeirdNews #StrangeWorld #Discoveries"
+            )
+            self.assertEqual(generated, expected)
+            self.assertEqual(generated.count(story["link"]), 1)
+            self.assertEqual(generated.count("#ODDNews73"), 1)
         self.assertEqual(post.call_count, 2)
         self.assertIn("gemini-3.5-flash-lite", post.call_args_list[0].args[0])
         self.assertIn("gemini-3.1-flash-lite", post.call_args_list[1].args[0])
@@ -248,6 +253,46 @@ class AutomaticPublishingTests(unittest.TestCase):
                 app.prepare()
                 self.assertFalse(app.RUN.exists())
                 self.assertEqual(choose.call_count, 1)
+
+
+    def test_rejected_candidates_are_bounded_and_do_not_pollute_history(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            site = root / "site"
+            (site / "posts").mkdir(parents=True)
+            stories = [
+                {"title": "Rare fossil " + str(i), "source": "NASA",
+                 "link": "https://nasa.gov/story" + str(i),
+                 "published_utc": "2026-11-19T00:00:00+00:00"}
+                for i in range(3)
+            ]
+            def select(st):
+                return next((s for s in stories if s["link"] not in st["seen_links"]), None)
+            def render(story, path, demo):
+                Image.new("RGB", (1080, 1350)).save(path)
+            with patch.object(app, "STATE", root / "state.json"), \
+                    patch.object(app, "RUN", root / "run.json"), \
+                    patch.object(app, "SITE", site), \
+                    patch.object(app, "choose", side_effect=select) as choose, \
+                    patch.object(app, "caption", side_effect=[None, "Valid source caption"]) as caption, \
+                    patch.object(app, "graphic", side_effect=render), \
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "false", "AUTO_PUBLISH": "false"}):
+                app.prepare()
+                self.assertEqual(choose.call_count, 2)
+                self.assertEqual(app.load()["seen_links"], [stories[1]["link"]])
+                self.assertEqual(len(app.load()["entries"]), 1)
+                self.assertEqual(app.load()["entries"][0]["status"], "draft")
+                before = app.STATE.read_bytes()
+                caption.side_effect = None
+                caption.return_value = None
+                choose.side_effect = None
+                choose.return_value = stories[0]
+                choose.reset_mock()
+                app.prepare()
+                self.assertEqual(choose.call_count, 3)
+                self.assertFalse(app.RUN.exists())
+                self.assertEqual(app.STATE.read_bytes(), before)
 
 if __name__ == "__main__":
     unittest.main()
