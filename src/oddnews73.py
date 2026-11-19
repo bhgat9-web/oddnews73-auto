@@ -18,6 +18,7 @@ from difflib import SequenceMatcher
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 from xml.etree import ElementTree as ET
 
 import requests
@@ -34,6 +35,32 @@ API_HOST = os.environ.get("IG_API_HOST", "graph.facebook.com").strip().lower()
 ALLOWED_API_HOSTS = ("graph.instagram.com", "graph.facebook.com")
 EXPECTED_ID = "17841472407525134"  # Verified from account listing in Meta app screenshot
 NOW = lambda: datetime.now(timezone.utc)
+
+IST = ZoneInfo("Asia/Kolkata")
+SLOT_HOURS = (9, 14, 21)
+SLOT_MINUTE = 7
+SLOT_LATE_TOLERANCE = timedelta(minutes=60)
+SLOT_RESULT = ROOT / "schedule_result.json"
+
+
+def scheduled_slot(now=None):
+    """Return the local planned slot only while its one-hour window is open.
+
+    A severely delayed scheduler event must not unexpectedly publish at night.
+    """
+    local = (now or NOW()).astimezone(IST)
+    for hour in SLOT_HOURS:
+        scheduled = local.replace(hour=hour, minute=SLOT_MINUTE,
+                                  second=0, microsecond=0)
+        if timedelta(0) <= local - scheduled < SLOT_LATE_TOLERANCE:
+            return scheduled.strftime("%Y-%m-%dT%H:%M%z")
+    return None
+
+
+def record_slot_result(status, slot=None):
+    SLOT_RESULT.write_text(json.dumps({"status": status, "slot": slot}) + "\n",
+                           encoding="utf-8")
+
 
 FEEDS = [
     ("NASA", "https://www.nasa.gov/feed/"),
@@ -457,10 +484,26 @@ def queue_digest(rec):
 def prepare_queued():
     """Use a prepared caption and exact JPEG; no research or AI API requests."""
     RUN.unlink(missing_ok=True)
+    SLOT_RESULT.unlink(missing_ok=True)
     st = load()
     live_mode = os.getenv("LIVE_PUBLISH", "false").lower() == "true"
+    slot = scheduled_slot() if live_mode else None
+    if live_mode and slot is None:
+        record_slot_result("outside_window")
+        raise RuntimeError("Scheduled execution arrived outside its planned IST posting window.")
+    if live_mode:
+        already_posted = any(
+            x.get("scheduled_slot") == slot and x.get("status") == "posted"
+            for x in st["entries"]
+        )
+        if already_posted:
+            record_slot_result("already_posted", slot)
+            print("Slot already published:", slot, "— retry skipped without posting again.")
+            return
     if any(x.get("status") in ("in_flight", "needs_review") for x in st["entries"]):
         print("SAFE STOP: unresolved publication; check state.json.")
+        if live_mode:
+            record_slot_result("blocked_unresolved", slot)
         return
     if live_mode:
         pending = next((x for x in st["entries"] if x.get("status") == "pending"), None)
@@ -468,11 +511,14 @@ def prepare_queued():
             # Never switch modes or silently re-authorize a previously staged post.
             validate_publication_authorization(pending)
             RUN.write_text(json.dumps({"slug": pending["slug"]}), encoding="utf-8")
+            record_slot_result("prepared", slot)
             print("Existing authorized pending post selected.")
             return
     queue_file = ROOT / "queue" / "posts.json"
     if not queue_file.is_file():
         print("Queue empty: prepare another batch in ChatGPT. No post created.")
+        if live_mode:
+            record_slot_result("queue_missing", slot)
         return
     queue = json.loads(queue_file.read_text(encoding="utf-8"))
     for item in queue.get("posts", []):
@@ -520,6 +566,8 @@ def prepare_queued():
         rec.update(status="pending" if live_mode else "draft", demo=False,
                    created_utc=NOW().isoformat(), prepared_queue=True,
                    queue_bundle_digest=item["bundle_digest"])
+        if live_mode:
+            rec["scheduled_slot"] = slot
         dest = SITE / "posts"
         dest.mkdir(parents=True, exist_ok=True)
         (dest / (slug + ".jpg")).write_bytes(data)
@@ -538,9 +586,13 @@ def prepare_queued():
             json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         sources_index(st)
         RUN.write_text(json.dumps({"slug": slug}), encoding="utf-8")
+        if live_mode:
+            record_slot_result("prepared", slot)
         print("Prepared queued post:", rec["title"], rec["status"])
         return
     print("No unused, unexpired queued posts. No post created; refill the queue.")
+    if live_mode:
+        record_slot_result("queue_exhausted", slot)
 
 
 def current(st):
