@@ -238,7 +238,7 @@ class ScheduledBackupTests(unittest.TestCase):
                     patch.object(app, "RUN", run), \
                     patch.object(app, "SLOT_RESULT", report), \
                     patch.object(app, "NOW", return_value=at_backup), \
-                    patch.dict("os.environ", {"LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true"}):
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true", "STRICT_SCHEDULE": "true"}):
                 app.prepare_queued()
             self.assertFalse(run.exists())
             self.assertEqual(json.loads(report.read_text())["status"], "already_posted")
@@ -256,7 +256,7 @@ class ScheduledBackupTests(unittest.TestCase):
                     patch.object(app, "RUN", run), \
                     patch.object(app, "SLOT_RESULT", report), \
                     patch.object(app, "NOW", return_value=late), \
-                    patch.dict("os.environ", {"LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true"}):
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true", "STRICT_SCHEDULE": "true"}):
                 with self.assertRaisesRegex(RuntimeError, "outside"):
                     app.prepare_queued()
             self.assertFalse(run.exists())
