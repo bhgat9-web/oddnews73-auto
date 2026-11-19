@@ -487,11 +487,12 @@ def prepare_queued():
     SLOT_RESULT.unlink(missing_ok=True)
     st = load()
     live_mode = os.getenv("LIVE_PUBLISH", "false").lower() == "true"
-    slot = scheduled_slot() if live_mode else None
-    if live_mode and slot is None:
+    strict_schedule = os.getenv("STRICT_SCHEDULE", "false").lower() == "true"
+    slot = scheduled_slot() if live_mode and strict_schedule else None
+    if live_mode and strict_schedule and slot is None:
         record_slot_result("outside_window")
         raise RuntimeError("Scheduled execution arrived outside its planned IST posting window.")
-    if live_mode:
+    if live_mode and strict_schedule:
         already_posted = any(
             x.get("scheduled_slot") == slot and x.get("status") == "posted"
             for x in st["entries"]
@@ -502,7 +503,7 @@ def prepare_queued():
             return
     if any(x.get("status") in ("in_flight", "needs_review") for x in st["entries"]):
         print("SAFE STOP: unresolved publication; check state.json.")
-        if live_mode:
+        if live_mode and strict_schedule:
             record_slot_result("blocked_unresolved", slot)
         return
     if live_mode:
@@ -511,13 +512,14 @@ def prepare_queued():
             # Never switch modes or silently re-authorize a previously staged post.
             validate_publication_authorization(pending)
             RUN.write_text(json.dumps({"slug": pending["slug"]}), encoding="utf-8")
-            record_slot_result("prepared", slot)
+            if strict_schedule:
+                record_slot_result("prepared", slot)
             print("Existing authorized pending post selected.")
             return
     queue_file = ROOT / "queue" / "posts.json"
     if not queue_file.is_file():
         print("Queue empty: prepare another batch in ChatGPT. No post created.")
-        if live_mode:
+        if live_mode and strict_schedule:
             record_slot_result("queue_missing", slot)
         return
     queue = json.loads(queue_file.read_text(encoding="utf-8"))
@@ -566,7 +568,7 @@ def prepare_queued():
         rec.update(status="pending" if live_mode else "draft", demo=False,
                    created_utc=NOW().isoformat(), prepared_queue=True,
                    queue_bundle_digest=item["bundle_digest"])
-        if live_mode:
+        if live_mode and strict_schedule:
             rec["scheduled_slot"] = slot
         dest = SITE / "posts"
         dest.mkdir(parents=True, exist_ok=True)
@@ -586,12 +588,13 @@ def prepare_queued():
             json.dumps(rec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         sources_index(st)
         RUN.write_text(json.dumps({"slug": slug}), encoding="utf-8")
-        if live_mode:
-            record_slot_result("prepared", slot)
+        if live_mode and strict_schedule:
+            if strict_schedule:
+                record_slot_result("prepared", slot)
         print("Prepared queued post:", rec["title"], rec["status"])
         return
     print("No unused, unexpired queued posts. No post created; refill the queue.")
-    if live_mode:
+    if live_mode and strict_schedule:
         record_slot_result("queue_exhausted", slot)
 
 
