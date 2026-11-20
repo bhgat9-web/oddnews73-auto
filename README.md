@@ -9,9 +9,9 @@ image-generation API subscription.
 2. Review the finished images and source-linked captions; add the bundles to
    queue/posts.json and queue/images/<slug>.jpg through a pull request.
 3. Scheduled runs target 09:07, 14:07 and 21:07 Asia/Kolkata, with backup
-   checks at 09:27, 14:27 and 21:27. A successful first post blocks the
+   checks at 09:27/09:47, 14:27/14:47 and 21:27/21:47. A successful first post blocks the
    backup from posting a duplicate in the same local-time slot. GitHub
-   scheduling is best-effort and neither attempt is guaranteed to start.
+   scheduling is best-effort and none of the attempts is guaranteed to start.
 4. An empty or invalid queue skips the slot and marks the scheduled workflow
    **failed** with an explanatory reason; it never substitutes generic content.
    A backup checking a slot already published is recorded as a safe success.
@@ -56,6 +56,17 @@ The Preview Real Story workflow has no Instagram or Gemini token and cannot publ
 The old manual Gemini diagnostics remain separate and are not part of this free pipeline.
 
 ## Schedule limitations and diagnostics
+- The workflow uses explicit UTC cron entries: `37,57 3,8,15 * * *` and
+  `17 4,9,16 * * *`. These map to the India times above; India has no DST.
+  Changing the cron refreshes the schedule definition without changing posting hours.
+- Missing schedule events have no job logs. The 20 November morning attempts
+  did not appear in the run history; the exact scheduler-side cause is unknown.
+  UTC scheduling and an extra backup are recovery measures, not a delivery guarantee.
+- Code Safety Tests checks the publishing workflow's enabled state through a
+  read-only GitHub API request. A passing preview proves the pipeline works,
+  but only a run labelled `schedule` proves the scheduler triggered it.
+- A pending post from an older slot blocks scheduled preparation for review;
+  it is never silently moved into a newer slot or retried automatically.
 - GitHub Actions cannot guarantee minute-accurate scheduling. A delayed trigger
   arriving outside the planned one-hour slot fails safely rather than posting
   at an unexpected hour.

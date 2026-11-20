@@ -509,6 +509,9 @@ def prepare_queued():
     if live_mode:
         pending = next((x for x in st["entries"] if x.get("status") == "pending"), None)
         if pending:
+            if strict_schedule and pending.get("scheduled_slot") != slot:
+                record_slot_result("blocked_stale_pending", slot)
+                raise RuntimeError("Pending post belongs to another slot; review before retrying.")
             # Never switch modes or silently re-authorize a previously staged post.
             validate_publication_authorization(pending)
             RUN.write_text(json.dumps({"slug": pending["slug"]}), encoding="utf-8")

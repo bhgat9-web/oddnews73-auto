@@ -7,10 +7,12 @@ on:
       - 'tests/**'
       - 'requirements.txt'
       - '.github/workflows/checks.yml'
+      - '.github/workflows/oddnews73.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   test:
@@ -22,3 +24,29 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -s tests -v
+      - name: Check publishing workflow is enabled (read-only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from urllib.request import Request, urlopen
+
+          url = f"https://api.github.com/repos/{os.environ['GH_REPO']}/actions/workflows/oddnews73.yml"
+          request = Request(url, headers={
+              "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+          })
+          with urlopen(request, timeout=30) as response:
+              workflow = json.load(response)
+          state = workflow.get("state", "unknown")
+          print("Publishing workflow state:", state)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(f"Publishing workflow state: **{state}**\n\n")
+              summary.write("This check is read-only. It does not dispatch or publish a post.\n")
+          if state != "active":
+              raise SystemExit("Publishing workflow is not active; enable it in Actions.")
+          PY
