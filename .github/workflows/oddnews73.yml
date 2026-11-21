@@ -14,6 +14,7 @@ on:
     # UTC: 09:07/09:27, 14:07/14:27, 21:07/21:27 IST.
     - cron: '37,57 3,8,15 * * *'
     # Final backup at 09:47, 14:47 and 21:47 IST, in the same guarded slots.
+    # Late starts are accepted for up to three hours, ending at local midnight.
     - cron: '17 4,9,16 * * *'
   workflow_dispatch:
     inputs:
