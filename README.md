@@ -67,9 +67,17 @@ The old manual Gemini diagnostics remain separate and are not part of this free 
   but only a run labelled `schedule` proves the scheduler triggered it.
 - A pending post from an older slot blocks scheduled preparation for review;
   it is never silently moved into a newer slot or retried automatically.
-- GitHub Actions cannot guarantee minute-accurate scheduling. A delayed trigger
-  arriving outside the planned one-hour slot fails safely rather than posting
-  at an unexpected hour.
+- GitHub Actions cannot guarantee minute-accurate scheduling. Each slot accepts
+  starts up to three hours late: 09:07–12:07, 14:07–17:07 and 21:07–midnight IST
+  (end times excluded). The current day's slot is used; missed slots are not replayed.
+  The window is checked again before preflight and the final Instagram publish call.
+  Duplicate protection still permits at most one successful post per slot.
+- The 20 November runs started at 22:43 and 23:20 IST. Both failed the previous
+  one-hour guard before reaching Instagram. The three-hour allowance admits those
+  observed delays, but cannot make GitHub create a missing trigger.
+- On 21 November the three unused sources were re-read and remained consistent
+  with their captions. Their expiry was extended to 23 November 00:00 UTC, within
+  seven days of every source publication. No image, caption or posting history changed.
 - If the initial slot already posted successfully, a backup attempt logs
   `already_posted` and exits without consuming another queue item.
 - When no eligible prepared post exists, the scheduled workflow is **red**,

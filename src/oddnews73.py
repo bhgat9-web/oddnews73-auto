@@ -39,14 +39,14 @@ NOW = lambda: datetime.now(timezone.utc)
 IST = ZoneInfo("Asia/Kolkata")
 SLOT_HOURS = (9, 14, 21)
 SLOT_MINUTE = 7
-SLOT_LATE_TOLERANCE = timedelta(minutes=60)
+SLOT_LATE_TOLERANCE = timedelta(hours=3)
 SLOT_RESULT = ROOT / "schedule_result.json"
 
 
 def scheduled_slot(now=None):
-    """Return the local planned slot only while its one-hour window is open.
+    """Allow up to three hours of delay, never carrying a slot past midnight.
 
-    A severely delayed scheduler event must not unexpectedly publish at night.
+    Only today's slots are considered. Missed slots are not replayed in a burst.
     """
     local = (now or NOW()).astimezone(IST)
     for hour in SLOT_HOURS:
@@ -55,6 +55,13 @@ def scheduled_slot(now=None):
         if timedelta(0) <= local - scheduled < SLOT_LATE_TOLERANCE:
             return scheduled.strftime("%Y-%m-%dT%H:%M%z")
     return None
+
+
+def validate_scheduled_window(rec):
+    """Recheck a scheduled post before network work and the final publish call."""
+    slot = rec.get("scheduled_slot")
+    if slot is not None and scheduled_slot() != slot:
+        raise RuntimeError("Scheduled post is outside its permitted posting window.")
 
 
 def record_slot_result(status, slot=None):
@@ -732,6 +739,7 @@ def preflight(site_url):
     if rec.get("demo") or rec["status"] != "pending":
         raise RuntimeError("Only a pending, non-demo post may be published")
     validate_publication_authorization(rec)
+    validate_scheduled_window(rec)
     if not site_url.startswith("https://"):
         raise RuntimeError("Site URL must be HTTPS")
     # Ensure the image URL is on the intended GitHub Pages host.
@@ -772,10 +780,11 @@ def publish():
     rec = current(st)
     if rec.get("demo") or rec["status"] != "in_flight":
         raise RuntimeError("SAFE STOP: missing committed preflight marker")
-    tok = verify_account()
-    ig_id = st["verified_instagram_id"]
     did_call_publish = False
     try:
+        validate_scheduled_window(rec)
+        tok = verify_account()
+        ig_id = st["verified_instagram_id"]
         info = ig("POST", ig_id + "/media", tok, {
             "image_url": rec["image_url"], "caption": rec["caption"],
             "alt_text": short("Original ODD News 73 graphic: " + rec["title"], 900)
@@ -793,6 +802,7 @@ def publish():
             time.sleep(7)
         else:
             raise RuntimeError("Timed out waiting for media")
+        validate_scheduled_window(rec)
         did_call_publish = True
         result = ig("POST", ig_id + "/media_publish", tok, {"creation_id": cid})
         rec["instagram_media_id"] = str(result["id"])
