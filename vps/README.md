@@ -24,7 +24,7 @@ GitHub Actions only hosts images; systemd on the VPS owns scheduling.
 Use the existing account and your existing SSH key. Never share private keys.
 
 ~~~powershell
-ssh -i "$env:USERPROFILE\.ssh\scalper_b73_admin_v2" adminb73@189.72.176.139
+ssh -i "PATH_TO_YOUR_EXISTING_PRIVATE_KEY" YOUR_SSH_USER@YOUR_VPS_HOST
 ~~~
 
 ## Step 2 — Install safely in VPS terminal
