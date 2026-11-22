@@ -1,0 +1,25 @@
+[Unit]
+Description=ODD News 73 — Source-verified Instagram publisher
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=oddnews73
+Group=oddnews73
+WorkingDirectory=/srv/oddnews73/repo
+EnvironmentFile=/etc/oddnews73/secrets.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/srv/oddnews73/.venv/bin/python /srv/oddnews73/repo/vps/runner.py run
+TimeoutStartSec=1200
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/srv/oddnews73
+CapabilityBoundingSet=
+RestrictSUIDSGID=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
