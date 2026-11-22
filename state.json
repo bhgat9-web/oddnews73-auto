@@ -282,7 +282,7 @@
       "source_url": "https://www.smithsonianmag.com/smart-news/chihuahuas-seem-to-carry-a-tiny-bit-of-coyote-dna-but-thats-probably-not-why-they-have-fearless-personalities-180989886/",
       "published_utc": "2026-11-18T15:00:00+00:00",
       "expires_utc": "2026-11-23T00:00:00+00:00",
-      "status": "in_flight",
+      "status": "posted",
       "demo": false,
       "created_utc": "2026-11-22T15:37:03.396286+00:00",
       "prepared_queue": true,
@@ -290,7 +290,11 @@
       "automatic_digest": "28bb052d8f203b17633561b0919c7d52ff27e188b60600dd51ec4f9f6ece55a0",
       "authorization": "owner-enabled prepared-queue publishing",
       "scheduled_slot": "2026-11-22T21:07+0530",
-      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/b54bb9936bde462d.jpg"
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/b54bb9936bde462d.jpg",
+      "container_id": "17905197675413585",
+      "instagram_media_id": "18022208498980072",
+      "instagram_permalink": "https://www.instagram.com/p/DgDJL8KDeZw/",
+      "posted_utc": "2026-11-22T15:37:29.161457+00:00"
     }
   ],
   "seen_links": [
