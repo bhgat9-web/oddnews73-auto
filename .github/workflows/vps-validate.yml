@@ -1,0 +1,42 @@
+name: ODD News 73 - VPS Deployment Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vps/**'
+      - '.github/workflows/vps-pages.yml'
+      - '.github/workflows/vps-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check deployment script and publisher syntax
+        run: |
+          bash -n vps/install.sh vps/activate.sh
+          python -m py_compile vps/runner.py
+      - name: Install existing publisher dependencies
+        run: pip install -r requirements.txt
+      - name: Verify existing editorial and publisher safeguards
+        run: python -m unittest discover -s tests -v
+      - name: Validate timer slot count
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          timer = Path("vps/oddnews73-publisher.timer").read_text()
+          assert timer.count("OnCalendar=") == 9
+          assert "Persistent=false" in timer
+          service = Path("vps/oddnews73-publisher.service").read_text()
+          assert "User=oddnews73" in service
+          assert "ProtectSystem=strict" in service
+          print("VPS deployment syntax, timer slots, and service isolation verified.")
+          PY
