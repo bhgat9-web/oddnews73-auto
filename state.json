@@ -282,17 +282,21 @@
       "source_url": "https://www.smithsonianmag.com/smart-news/chihuahuas-seem-to-carry-a-tiny-bit-of-coyote-dna-but-thats-probably-not-why-they-have-fearless-personalities-180989886/",
       "published_utc": "2026-11-18T15:00:00+00:00",
       "expires_utc": "2026-11-23T00:00:00+00:00",
-      "status": "draft",
+      "status": "pending",
       "demo": false,
-      "created_utc": "2026-11-21T06:38:36.566419+00:00",
+      "created_utc": "2026-11-22T15:37:03.396286+00:00",
       "prepared_queue": true,
-      "queue_bundle_digest": "85b7a1e1d5935f9dfe5e405eff44f1a23dba6bec4798952e5ac17862355bc475"
+      "queue_bundle_digest": "85b7a1e1d5935f9dfe5e405eff44f1a23dba6bec4798952e5ac17862355bc475",
+      "automatic_digest": "28bb052d8f203b17633561b0919c7d52ff27e188b60600dd51ec4f9f6ece55a0",
+      "authorization": "owner-enabled prepared-queue publishing",
+      "scheduled_slot": "2026-11-22T21:07+0530"
     }
   ],
   "seen_links": [
     "https://www.livescience.com/archaeology/thinkers-of-cernavoda-mysterious-stone-age-figurines-discovered-in-a-7-000-year-old-grave-in-romania",
     "https://www.smithsonianmag.com/smart-news/spacex-catches-the-upper-stage-of-its-starship-for-the-first-time-making-the-company-one-step-closer-to-a-reusable-rocket-180989877/",
-    "https://www.smithsonianmag.com/smart-news/medieval-readers-saw-floods-plagues-and-comets-as-omens-of-doom-so-they-created-a-mysterious-manuscript-of-apocalyptic-artworks-to-peruse-at-will-180989891/"
+    "https://www.smithsonianmag.com/smart-news/medieval-readers-saw-floods-plagues-and-comets-as-omens-of-doom-so-they-created-a-mysterious-manuscript-of-apocalyptic-artworks-to-peruse-at-will-180989891/",
+    "https://www.smithsonianmag.com/smart-news/chihuahuas-seem-to-carry-a-tiny-bit-of-coyote-dna-but-thats-probably-not-why-they-have-fearless-personalities-180989886/"
   ],
   "verified_instagram_id": "17841472407525134"
 }
