@@ -1,0 +1,20 @@
+[Unit]
+Description=ODD News 73 — Daily Instagram publishing slots (India time)
+
+[Timer]
+OnCalendar=*-*-* 09:07:00
+OnCalendar=*-*-* 09:17:00
+OnCalendar=*-*-* 09:27:00
+OnCalendar=*-*-* 14:07:00
+OnCalendar=*-*-* 14:17:00
+OnCalendar=*-*-* 14:27:00
+OnCalendar=*-*-* 21:07:00
+OnCalendar=*-*-* 21:17:00
+OnCalendar=*-*-* 21:27:00
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+Unit=oddnews73-publisher.service
+
+[Install]
+WantedBy=timers.target
