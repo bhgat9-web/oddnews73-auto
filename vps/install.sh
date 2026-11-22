@@ -13,7 +13,7 @@ REPO=$APP_HOME/repo
 echo "Setting up isolated ODD News 73 service (Scalper-B73 untouched)."
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  git openssh-client python3-venv python3-pip ca-certificates nano
+  git openssh-client python3-venv python3-pip ca-certificates nano fonts-dejavu-core
 
 if ! id "$APP_USER" >/dev/null 2>&1; then
   useradd --system --create-home --home-dir "$APP_HOME" \
