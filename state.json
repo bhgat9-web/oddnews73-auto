@@ -318,7 +318,7 @@
     {
       "slug": "38da41454ce7165a",
       "title": "Have Archaeologists Finally Pieced Together the 'Parthenon Puzzle,' One of Ancient Greece's Greatest Mysteries?",
-      "status": "pending",
+      "status": "in_flight",
       "source": "Smithsonian Smart News",
       "source_url": "https://www.smithsonianmag.com/smart-news/have-archaeologists-finally-pieced-together-the-parthenon-puzzle-one-of-ancient-greece-greatest-mysteries-180989903/",
       "published_utc": "2026-11-19T19:06:45+00:00",
@@ -327,7 +327,8 @@
       "demo": false,
       "automatic_digest": "3c1368a7276005d8dc0053d0ccb8f2501b4a8d9697616cc2d5ef09564f374c76",
       "authorization": "owner-enabled recurring publishing",
-      "scheduled_slot": "2026-11-23T14:07+0530"
+      "scheduled_slot": "2026-11-23T14:07+0530",
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/38da41454ce7165a.jpg"
     }
   ],
   "seen_links": [
