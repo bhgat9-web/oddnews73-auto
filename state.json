@@ -299,7 +299,7 @@
     {
       "slug": "0819d9187a021411",
       "title": "Scientists put 78,000 letters of human DNA into a mouse — and unraveled how a rare disease worked",
-      "status": "pending",
+      "status": "in_flight",
       "source": "Live Science",
       "source_url": "https://www.livescience.com/health/genetics/scientists-put-78-000-letters-of-human-dna-into-a-mouse-and-unraveled-how-a-rare-disease-worked",
       "published_utc": "2026-11-21T12:00:00+00:00",
@@ -308,7 +308,8 @@
       "demo": false,
       "automatic_digest": "cb52c927bc44df028914fdd0e437db1840dad3cea1a0b311de066e4768d011bf",
       "authorization": "owner-enabled recurring publishing",
-      "scheduled_slot": "2026-11-23T09:07+0530"
+      "scheduled_slot": "2026-11-23T09:07+0530",
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/0819d9187a021411.jpg"
     }
   ],
   "seen_links": [
