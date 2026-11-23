@@ -337,7 +337,7 @@
     {
       "slug": "72a8496fb980dd0b",
       "title": "An ancient failed rift is reawakening inside one of Africa's oldest landmasses",
-      "status": "pending",
+      "status": "in_flight",
       "source": "Phys.org Earth",
       "source_url": "https://phys.org/news/2026-11-ancient-rift-reawakening-africa-oldest.html",
       "published_utc": "2026-11-21T14:00:06+00:00",
@@ -346,7 +346,8 @@
       "demo": false,
       "automatic_digest": "f0a5aebc7559475550d5b2693ea161c5f82ff06634123f69babf381a3564d752",
       "authorization": "owner-enabled recurring publishing",
-      "scheduled_slot": "2026-11-23T21:07+0530"
+      "scheduled_slot": "2026-11-23T21:07+0530",
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/72a8496fb980dd0b.jpg"
     }
   ],
   "seen_links": [
