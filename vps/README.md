@@ -9,11 +9,10 @@ rules are changed. The server timezone remains Asia/Kolkata.
 The systemd timer triggers at 09:07, 14:07, and 21:07 IST, with backup checks
 10 and 20 minutes later. The runner prevents duplicates within each slot.
 
-The existing editorial system uses prepared, attributed items first. When these
-run out, it tries fresh RSS stories from established sources, Gemini captions,
-and branded Pillow-generated 1080x1350 graphics. Weakly supported stories are
-skipped rather than invented. Fallback graphics are abstract illustrations
-and typography, not AI-generated photographic scenes.
+The editorial system publishes only prepared, attributed, story-specific
+1080x1350 artwork from the reviewed queue. If the queue runs out, the slot is
+skipped and reported. The publisher never substitutes a plain or generic
+graphic for the approved visual style.
 
 The exact JPEG is committed to GitHub Pages and checked byte-for-byte before
 Instagram publishing. An in-flight marker is stored before the Meta API POST.
@@ -47,7 +46,7 @@ https://github.com/bhgat9-web/oddnews73-auto/settings/keys
 Choose Add deploy key, title ODD News 73 VPS and Allow write access.
 Never share or upload the private key. This key is scoped to this repository.
 
-## Step 4 — Store two API secrets locally
+## Step 4 — Store the Instagram token locally
 
 On the VPS terminal:
 
@@ -55,9 +54,10 @@ On the VPS terminal:
 sudo nano /etc/oddnews73/secrets.env
 ~~~
 
-Enter your existing GEMINI_API_KEY and INSTAGRAM_ACCESS_TOKEN values. Do not
-paste these secrets in ChatGPT or commit them to GitHub. Actions Secrets cannot
-be read back in plaintext. The VPS secrets file is root-owned, permission 0640.
+Enter your existing INSTAGRAM_ACCESS_TOKEN value. Do not paste this secret in
+ChatGPT or commit it to GitHub. The VPS secrets file is root-owned, permission
+0640. Image preparation uses the owner's Work automation and does not require a
+generative-AI API key on the VPS.
 
 ## Step 5 — Activate after the key and tokens are ready
 
@@ -87,8 +87,9 @@ sudo systemctl disable --now oddnews73-publisher.timer
 ### Limitations
 
 - The daily target is three posts when three credible stories are available.
-- Gemini free tier can run out of quota; no unlimited free output promised.
+- Prepared artwork depends on the owner's Work automation and available plan usage.
 - GitHub Pages deployment or Instagram API errors may delay or prevent a post.
 - An ambiguous Meta publication is never retried blindly.
 - No new inbound public server port is opened.
 - Initial deployment needs one-time authenticated SSH access and local secret entry.
+

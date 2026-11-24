@@ -356,7 +356,7 @@
     {
       "slug": "068f4d0dd1e56b53",
       "title": "Robot submarine exploring world's deepest ocean trench finds unprecedented volcanic activity",
-      "status": "pending",
+      "status": "not_published",
       "source": "Phys.org Earth",
       "source_url": "https://phys.org/news/2026-11-robot-submarine-exploring-world-deepest.html",
       "published_utc": "2026-11-23T05:00:02+00:00",
@@ -365,7 +365,9 @@
       "demo": false,
       "automatic_digest": "116c08ac5c092c4da6a14f728b89de3356fff2b9e08ef16ac9770e7b2f307f67",
       "authorization": "owner-enabled recurring publishing",
-      "scheduled_slot": "2026-11-24T09:07+0530"
+      "scheduled_slot": "2026-11-24T09:07+0530",
+      "error": "Image deployment did not complete within the scheduled slot; no Meta container was created.",
+      "recovered_utc": "2026-11-24T06:30:00+00:00"
     }
   ],
   "seen_links": [
