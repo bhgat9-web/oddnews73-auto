@@ -13,29 +13,18 @@ import oddnews73 as app
 
 
 class ScheduleConfigurationTests(unittest.TestCase):
-    def test_utc_triggers_cover_three_attempts_in_each_ist_slot(self):
+    def test_vps_timer_covers_three_attempts_in_each_ist_slot(self):
+        timer = (app.ROOT / "vps/oddnews73-publisher.timer").read_text()
+        configured = re.findall(r"OnCalendar=\*-\*-\* (\d\d):(\d\d):00", timer)
+        expected = [(f"{hour:02d}", f"{minute:02d}")
+                    for hour in (9, 14, 21) for minute in (7, 17, 27)]
+        self.assertCountEqual(configured, expected)
+        for hour, minute in configured:
+            local = datetime(2026, 11, 20, int(hour), int(minute), tzinfo=app.IST)
+            self.assertIsNotNone(app.scheduled_slot(local))
+
         workflow = (app.ROOT / ".github/workflows/oddnews73.yml").read_text()
-        schedule = workflow.split("  schedule:\n", 1)[1].split("  workflow_dispatch:", 1)[0]
-        self.assertNotIn("timezone:", schedule)
-        crons = re.findall(r"cron: '([^']+)'", schedule)
-        self.assertEqual(len(crons), 2)
-        for month in (1, 7, 11):
-            local_times = []
-            slots = {}
-            for cron in crons:
-                minute, hour, day, month_field, weekday = cron.split()
-                self.assertEqual((day, month_field, weekday), ("*", "*", "*"))
-                for h in map(int, hour.split(",")):
-                    for m in map(int, minute.split(",")):
-                        at = datetime(2026, month, 20, h, m, tzinfo=timezone.utc)
-                        local = at.astimezone(app.IST)
-                        local_times.append((local.hour, local.minute))
-                        slot = app.scheduled_slot(at)
-                        self.assertIsNotNone(slot)
-                        slots[slot] = slots.get(slot, 0) + 1
-            self.assertCountEqual(local_times, [(h, m) for h in (9, 14, 21)
-                                               for m in (7, 27, 47)])
-            self.assertEqual(sorted(slots.values()), [3, 3, 3])
+        self.assertNotIn("  schedule:", workflow)
 
     def test_final_backup_skips_a_successful_slot_without_network(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -165,3 +154,4 @@ class DelayedScheduleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

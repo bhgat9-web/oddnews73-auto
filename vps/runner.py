@@ -47,7 +47,7 @@ def report(label: str, **fields):
 
 
 def check():
-    missing = [name for name in ("GEMINI_API_KEY", "INSTAGRAM_ACCESS_TOKEN")
+    missing = [name for name in ("INSTAGRAM_ACCESS_TOKEN",)
                if not os.getenv(name, "").strip()]
     if missing:
         raise RuntimeError("Missing VPS settings: " + ", ".join(missing))
@@ -127,13 +127,12 @@ def main():
                for e in state["entries"]):
             raise RuntimeError("Pending post belongs to an earlier slot; review required")
 
-        # Existing source-vetted artwork first; bounded RSS/Gemini/Pillow fallback.
+        # Publish only source-vetted artwork prepared in the queue. Never replace
+        # approved editorial artwork with a generic generated card.
         app.prepare_queued()
         if not app.RUN.is_file():
-            report("queue_unavailable", slot=slot, fallback="RSS_Gemini")
-            app.prepare()
-        if not app.RUN.is_file():
-            report("editorial_skip", slot=slot, reason="No source-supported story")
+            report("queue_exhausted", slot=slot,
+                   reason="No unused approved story-specific artwork")
             return
 
         state = app.load()
@@ -163,3 +162,4 @@ if __name__ == "__main__":
     except Exception as exc:
         report("failed", reason=str(exc)[:200])
         sys.exit(1)
+

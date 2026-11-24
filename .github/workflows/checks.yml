@@ -5,6 +5,8 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'queue/**'
+      - 'vps/**'
       - 'requirements.txt'
       - '.github/workflows/checks.yml'
       - '.github/workflows/oddnews73.yml'
@@ -50,3 +52,4 @@ jobs:
           if state != "active":
               raise SystemExit("Publishing workflow is not active; enable it in Actions.")
           PY
+

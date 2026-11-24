@@ -137,6 +137,13 @@ class ShippedQueueTests(unittest.TestCase):
                 image.verify()
             self.assertTrue(app.allowed(item["source_url"]))
 
+    def test_vps_never_uses_generic_fallback_artwork(self):
+        runner = (app.ROOT / "vps/runner.py").read_text(encoding="utf-8")
+        self.assertIn('report("queue_exhausted"', runner)
+        self.assertNotIn("app.prepare()", runner)
+        self.assertNotIn("RSS_Gemini", runner)
+
 
 if __name__ == "__main__":
     unittest.main()
+
