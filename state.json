@@ -377,14 +377,15 @@
       "source_url": "https://www.smithsonianmag.com/smart-news/a-roman-cup-and-hundreds-other-treasures-unearthed-in-this-2000-year-old-tomb-reveal-the-rich-exchange-network-of-an-ancient-asian-empire-180989920/",
       "published_utc": "2026-11-20T00:00:00+00:00",
       "expires_utc": "2026-11-27T00:00:00+00:00",
-      "status": "pending",
+      "status": "in_flight",
       "demo": false,
       "created_utc": "2026-11-24T15:37:03.249101+00:00",
       "prepared_queue": true,
       "queue_bundle_digest": "45d7b1b704bd564ec03f72996a634600983ca0f4836a63fd9da07d5a6488eeb6",
       "automatic_digest": "22985bd1435d2fee53bf38894dcf8c65d37eef354f3212ba75b2575eed987692",
       "authorization": "owner-enabled prepared-queue publishing",
-      "scheduled_slot": "2026-11-24T21:07+0530"
+      "scheduled_slot": "2026-11-24T21:07+0530",
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/6bca5939dfbcfca0.jpg"
     }
   ],
   "seen_links": [
