@@ -368,6 +368,20 @@
       "scheduled_slot": "2026-11-24T09:07+0530",
       "error": "Image deployment did not complete within the scheduled slot; no Meta container was created.",
       "recovered_utc": "2026-11-24T06:30:00+00:00"
+    },
+    {
+      "slug": "6bca5939dfbcfca0",
+      "title": "A tomb with distant connections",
+      "caption": "A glass cup believed to be Roman was among 413 artifacts found in a roughly 2,000-year-old Xiongnu tomb in Mongolia. The jade objects, silver pendant and other finds add evidence of far-reaching exchange networks, but they do not reveal the cup's exact journey or prove direct contact between Rome and Mongolia.\n\nSource: Smithsonian Smart News · 20 Nov 2026\nhttps://www.smithsonianmag.com/smart-news/a-roman-cup-and-hundreds-other-treasures-unearthed-in-this-2000-year-old-tomb-reveal-the-rich-exchange-network-of-an-ancient-asian-empire-180989920/\n\nVisual: AI-generated illustration and artist interpretation, not a photograph or exact reconstruction.\n\n#ODDNews73 #Archaeology #AncientHistory #Discoveries",
+      "source": "Smithsonian Smart News",
+      "source_url": "https://www.smithsonianmag.com/smart-news/a-roman-cup-and-hundreds-other-treasures-unearthed-in-this-2000-year-old-tomb-reveal-the-rich-exchange-network-of-an-ancient-asian-empire-180989920/",
+      "published_utc": "2026-11-20T00:00:00+00:00",
+      "expires_utc": "2026-11-27T00:00:00+00:00",
+      "status": "draft",
+      "demo": false,
+      "created_utc": "2026-11-24T10:59:56.416265+00:00",
+      "prepared_queue": true,
+      "queue_bundle_digest": "45d7b1b704bd564ec03f72996a634600983ca0f4836a63fd9da07d5a6488eeb6"
     }
   ],
   "seen_links": [
