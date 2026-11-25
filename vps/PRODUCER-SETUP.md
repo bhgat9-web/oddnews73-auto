@@ -1,71 +1,72 @@
-# ODD News 73 — unattended news and original illustration production
+# ODD News 73 — hands-free verified-news and image producer
 
-**Status: built and safety-tested; NOT ENABLED.** Publishing is managed by
-`oddnews73-publisher.timer`; this is a separate optional producer. Installing
-it does not place an Instagram post. The Windows PC is not involved.
+**Status: GitHub code built and offline-tested. Not yet activated on the Hostinger VPS.**
+The existing Instagram publishing service continues independently. The producer
+is strictly opt-in and never calls Instagram or modifies the trading system.
 
-## Pipeline
+## Workflow
 
-- Three production runs per day, **05:30, 12:00 and 18:00 IST**.
-- Read recent public RSS items from the existing allowlisted news sources.
-- Choose unusual stories with recent source publication time; skip URLs
-  already used in history or the artwork queue.
-- Retrieve the underlying article (not only an RSS headline). If the article
-  is blocked or lacks enough text, skip it.
-- Call Cloudflare Workers AI `@cf/qwen/qwen3-30b-a3b-fp8` for new English
-  caption, short visual headline, and TWO source quotations. Reject if those
-  evidence excerpts do not appear verbatim in the extracted article.
-- Call Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`
-  for a story-specific original illustration.
-- Locally add branding, an actual short headline, and an AI artwork label.
-  Convert to the publisher's required **1080×1350 JPEG**.
-- Sign each prepared bundle with the same SHA-256 image and editorial-content
-  digest contract used by the existing publisher.
-- Acquire the existing publish lock, and push at most 3 new posts per run to
-  the same GitHub queue. No Meta token is used by this producer.
-- Target up to 9 unused, unexpired prepared posts. If stories are uncertain,
-  invalid or unavailable, skip instead of fabricating news. The independent
-  GitHub health alert reports low inventory.
+Scheduled checks at **05:30, 12:00 and 18:00 IST** find recent unusual stories
+from the publisher's existing allowlisted RSS feeds (NASA, Smithsonian, Phys.org
+and Live Science). Each article must be retrieved; RSS headlines alone are not
+used to write posts.
 
-## Limitations
+Gemini text API summarizes with two verbatim evidence excerpts from the
+retrieved source. Any story lacking those excerpts or other validation is
+rejected. Gemini image API creates an *original conceptual illustration*
+describing the article's subject. The existing logo and short headline are
+applied locally, and the approved **1080 × 1350 JPEG** is packaged with its
+source URL, caption, AI-image disclosure and cryptographic content digests.
 
-This is a new integration and must be tried with real provider credentials.
-Offline tests validate the safety contract, not actual Cloudflare image quality,
-API quota reliability, source completeness, or Instagram publication. One
-reputable article plus two exact evidence excerpts is source-grounding, **not**
-independent journalistic fact-checking. Good visuals cannot be guaranteed.
-Cloudflare free allowances, per-model access, quotas, and prices can change.
-If the free limit or source supply fails, the producer stops and the existing
-publisher never substitutes generic filler.
+The producer shares the existing publisher's repository write lock, and adds
+at most three new story bundles per run, up to a reserve of nine prepared
+articles. Publication remains entirely owned by the working VPS publisher,
+which checks the artwork and Meta status and avoids duplicate publication.
 
-## One-time Cloudflare account setup
+## Reuse existing Gemini account instead of Cloudflare
 
-From your phone, sign in at https://dash.cloudflare.com. Open **Workers AI**
-and select **Use REST API** / **Create a Workers AI API Token**. Save the
-Cloudflare **Account ID** and narrowly-scoped API token. See:
-https://developers.cloudflare.com/workers-ai/get-started/rest-api/
+No Cloudflare account/token is needed. The producer uses `GEMINI_API_KEY`,
+the same key *name* already used in `src/oddnews73.py` for text generation.
+This does **not** mean the key is available on the VPS: presence and permission
+must be checked without revealing the value.
 
-**Never paste the token into ChatGPT, GitHub commits, or a screenshot.** On
-your VPS (Hostinger web console), edit the *existing* secrets file:
+Default text model: `gemini-3.1-flash-lite`.
+Default image model: `gemini-3.1-flash-lite-image`.
+Image model may be switched to `gemini-3.1-flash-image`, but never silently.
 
-~~~bash
-sudo nano /etc/oddnews73/secrets.env
-~~~
+**Image-generation API output is paid, even when Gemini text usage is free.**
+Google's official current rate for Gemini 3.1 Flash Lite Image is approximately
+US$0.0336 for a 1K image, plus input and any text output. Paid tier access and
+budget authorization are required. Check latest official rates before
+enabling: https://ai.google.dev/gemini-api/docs/pricing
 
-Add the following lines using your **actual private values** without quotes:
+A conservative VPS-side budget tracker in
+`/srv/oddnews73/producer_budget.json` limits attempted paid image calls to
+**three per UTC day** (not three *per timer run*) by default. It reserves the
+attempt *before* calling Gemini, so unexpected errors still count against the
+cap. Set `PRODUCER_DAILY_IMAGE_LIMIT=0` to disable paid calls entirely.
+It is not a billing cap across other Google applications using the same key;
+Google Cloud billing budgets and API quotas should also be configured.
+
+**No automatic production has been enabled or charged through these code
+changes.** A paid account and explicit permission to incur usage are required
+before the first actual image-generation test.
+
+## Safe deployment on Hostinger (only once account access is confirmed)
+
+From the root browser console, add the Gemini credential *only if it is not
+already present* to the existing **private** file
+`/etc/oddnews73/secrets.env`. Do not paste it in chat, screenshots, or GitHub.
+Retain the existing Instagram setting. Add:
 
 ~~~dotenv
-CLOUDFLARE_ACCOUNT_ID=YOUR_ACCOUNT_ID_HERE
-CLOUDFLARE_API_TOKEN=YOUR_WORKERS_AI_TOKEN_HERE
+GEMINI_API_KEY=YOUR_EXISTING_GEMINI_API_KEY
 PRODUCER_ENABLED=true
+PRODUCER_DAILY_IMAGE_LIMIT=3
 ~~~
 
-Keep existing Instagram settings intact. Confirm file permissions remain
-root-owned and group-readable only by oddnews73.
-
-## Install the producer on the VPS (DO NOT RUN UNTIL TOKEN READY)
-
-From the root console, after adding Cloudflare settings:
+Once the user has explicitly authorized paid image generation and the first
+test image has been checked, deploy the separate timer:
 
 ~~~bash
 sudo -u oddnews73 git -C /srv/oddnews73/repo pull --ff-only origin main
@@ -77,17 +78,28 @@ sudo systemctl enable --now oddnews73-producer.timer
 sudo systemctl list-timers oddnews73-producer.timer --no-pager
 ~~~
 
-This does not modify the trading software or existing publisher timer.
-The new producer is **not enabled by code changes or by GitHub workflow runs**.
-
-### Check health / pause production
+This does not touch `oddnews73-publisher.timer` or the trading app. To
+pause content production only:
 
 ~~~bash
-sudo systemctl status oddnews73-producer.timer --no-pager
-sudo journalctl -u oddnews73-producer.service -n 80 --no-pager
 sudo systemctl disable --now oddnews73-producer.timer
 ~~~
 
-Because the new provider's artwork quality is unverified, first conduct an
-isolated supervised test and inspect one image before enabling recurring
-generation. Do not publish synthetic illustrations as real photographs.
+To view its logs without exposing private credentials:
+
+~~~bash
+sudo journalctl -u oddnews73-producer.service -n 80 --no-pager
+~~~
+
+## Limits and editorial caution
+
+An AI-generated caption can contain inaccuracies even when evidence excerpts
+match article text. Source attribution is not an independent scientific or
+journalistic verification. If the original article is inaccessible, uncertain,
+or inconsistent, the system should reject it, never fabricate details or
+substitute an unrelated graphic. The provider may refuse images or exhaust
+quotas; such failures do not justify unsafe double-posting.
+
+The first image and exact source-grounding should be reviewed before switching
+on unattended publishing. Nothing in this service grants ChatGPT direct SSH
+access or reveals any secret in GitHub.
