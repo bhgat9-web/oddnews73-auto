@@ -75,8 +75,12 @@ FEEDS = [
     ("Live Science", "https://www.livescience.com/feeds.xml"),
     ("Smithsonian Smart News", "https://www.smithsonianmag.com/rss/smart-news/"),
     ("Smithsonian Science", "https://www.smithsonianmag.com/rss/science-nature/"),
+    ("Phys.org Archaeology", "https://phys.org/rss-feed/breaking/science-news/archaeology-fossils/"),
+    ("Phys.org Fossils", "https://phys.org/rss-feed/breaking/biology-news/paleontology/"),
+    ("Phys.org Nature", "https://phys.org/rss-feed/breaking/biology-news/plants-animals/"),
+    ("ScienceDaily Strange & Offbeat", "https://www.sciencedaily.com/rss/strange_offbeat.xml"),
 ]
-ALLOW = ("nasa.gov", "phys.org", "livescience.com", "smithsonianmag.com")
+ALLOW = ("nasa.gov", "phys.org", "livescience.com", "smithsonianmag.com", "sciencedaily.com")
 WEIRD = ("unusual", "bizarre", "strange", "mystery", "mysterious", "rare",
          "fossil", "ancient", "unexplained", "deep sea", "new species",
          "extinct", "prehistoric", "archaeolog", "odd", "unexpected",
