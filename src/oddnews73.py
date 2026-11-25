@@ -556,7 +556,10 @@ def prepare_queued():
                 raise ValueError("expiry exceeds seven days")
             if not 50 <= len(item["caption"]) <= 2200 or url not in item["caption"]:
                 raise ValueError("caption")
-            if "AI-generated illustration" not in item["caption"]:
+            # Accept meaningful modifiers (e.g. "AI-generated conceptual illustration")
+            # without changing the approved caption or its bundle digest.
+            if not re.search(r"\bAI-generated(?:\s+[\w-]+){0,6}\s+illustration\b",
+                             item["caption"], flags=re.IGNORECASE):
                 raise ValueError("missing illustration disclosure")
             if not hmac.compare_digest(queue_digest(item), item.get("bundle_digest", "")):
                 raise ValueError("bundle mismatch")
