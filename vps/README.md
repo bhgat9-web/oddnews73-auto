@@ -58,8 +58,9 @@ sudo nano /etc/oddnews73/secrets.env
 
 Enter your existing INSTAGRAM_ACCESS_TOKEN value. Do not paste this secret in
 ChatGPT or commit it to GitHub. The VPS secrets file is root-owned, permission
-0640. Image preparation uses the owner's Work automation and does not require a
-generative-AI API key on the VPS.
+0640. The optional independent content producer uses the existing Gemini API key;
+it is disabled by default and requires separate paid image-API authorization.
+See vps/PRODUCER-SETUP.md for its safety checks.
 
 ## Step 5 — Activate after the key and tokens are ready
 
@@ -89,7 +90,7 @@ sudo systemctl disable --now oddnews73-publisher.timer
 ### Limitations
 
 - The daily target is three posts when three credible stories are available.
-- Prepared artwork depends on the owner's Work automation and available plan usage.
+- Without the opt-in Gemini producer, prepared artwork must still be replenished manually.
 - GitHub Pages deployment or Instagram API errors may delay or prevent a post.
 - An ambiguous Meta publication is never retried blindly.
 - No new inbound public server port is opened.
