@@ -50,7 +50,9 @@ Google Cloud billing budgets and API quotas should also be configured.
 
 **No automatic production has been enabled or charged through these code
 changes.** A paid account and explicit permission to incur usage are required
-before the first actual image-generation test.
+before the first actual image-generation test. The separate
+`GEMINI_IMAGE_PAID_OK=yes` flag prevents an old producer setting from
+silently authorizing paid image generation.
 
 ## Safe deployment on Hostinger (only once account access is confirmed)
 
@@ -62,6 +64,7 @@ Retain the existing Instagram setting. Add:
 ~~~dotenv
 GEMINI_API_KEY=YOUR_EXISTING_GEMINI_API_KEY
 PRODUCER_ENABLED=true
+GEMINI_IMAGE_PAID_OK=yes
 PRODUCER_DAILY_IMAGE_LIMIT=3
 ~~~
 
