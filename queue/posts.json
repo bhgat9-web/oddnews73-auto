@@ -72,7 +72,30 @@
       "slug": "cf66c7b4f143df84",
       "image_sha256": "7f821fbb3b713910e8f2330451a279222597f88349be7360bde06fc02287e731",
       "bundle_digest": "39c90f24a89040ec698abe7ac4c883f1d5c9f1faa122daadd73c4add9facf61f"
+    },
+    {
+      "title": "The golden burbot",
+      "source_url": "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/",
+      "source": "Smithsonian Smart News",
+      "published_utc": "2026-11-24T00:00:00+00:00",
+      "expires_utc": "2026-12-01T00:00:00+00:00",
+      "caption": "Most burbot blend into the lake bottom with mottled brown and olive coloring. During a survey of New York’s Oswego Harbor, U.S. Fish and Wildlife Service biologists caught one in vivid yellow-orange. The unusual coloring comes from xanthochromism, a rare condition that lets yellow pigment dominate. Burbot are native to the Great Lakes, and this was the first recorded burbot in a fisheries survey of that harbor.\n\nSource: Smithsonian Smart News · 24 Nov 2026\nhttps://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/\n\nVisual: AI-generated illustration of an imagined underwater scene.\n\n#ODDNews73 #Discoveries",
+      "slug": "fca53d6358ea95b3",
+      "image_sha256": "900018ca2327f58f5089daaebefbd4f9c97b9641c5c0641d4f52910c72a87893",
+      "bundle_digest": "e295a9989f6ae0b010544a46f5a94a33a8e638370ac8dd2160a707fd0d527291",
+      "ready": true
+    },
+    {
+      "title": "A shadow in the sand",
+      "source_url": "https://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/",
+      "source": "Smithsonian Smart News",
+      "published_utc": "2026-11-24T00:00:00+00:00",
+      "expires_utc": "2026-12-01T00:00:00+00:00",
+      "caption": "In 2025, excavators at Sutton Hoo’s Garden Field cemetery uncovered a body-shaped impression preserved in the sand. The acidic soil can dissolve bones and other remains while leaving a trace of their shape. The team also found grave goods and clues that a second person may have been buried there. The timing and relationship of the possible burials remain uncertain.\n\nSource: Smithsonian Smart News · 24 Nov 2026\nhttps://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/\n\nVisual: AI-generated illustration of a conceptual view of the excavation.\n\n#ODDNews73 #Discoveries",
+      "slug": "66c3ff965cea149b",
+      "image_sha256": "6f332b798b288028b0bd7e6dd81d778a5e9dc26e561202fe49c9225ed0e338ae",
+      "bundle_digest": "873e3aae9976cc5386d17a4f2495e9ad60a747382d039c895dfd9c2009b92da4",
+      "ready": true
     }
   ]
 }
-
