@@ -22,7 +22,7 @@ jobs:
           python-version: '3.12'
       - name: Check deployment script and publisher syntax
         run: |
-          bash -n vps/install.sh vps/activate.sh
+          bash -n vps/install.sh vps/activate.sh vps/install-producer.sh
           python -m py_compile vps/runner.py vps/producer.py
       - name: Install existing publisher dependencies
         run: pip install -r requirements.txt
