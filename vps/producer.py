@@ -90,15 +90,22 @@ def reserve_image_budget():
     # Only project-specific spend tracking. No secrets are recorded.
     try:
         budget = json.loads(BUDGET_FILE.read_text(encoding="utf-8"))
-    except (OSError, ValueError, TypeError):
-        budget = {}
+    except FileNotFoundError:
+        budget = {"utc_date": date, "image_calls": 0}
+    except (OSError, ValueError, TypeError) as exc:
+        # Fail closed: a damaged counter must never reset paid call limits.
+        raise RuntimeError("Image budget file unreadable; refusing API charge") from exc
+    if not isinstance(budget, dict) or not isinstance(budget.get("image_calls"), int):
+        raise RuntimeError("Image budget file invalid; refusing API charge")
     if budget.get("utc_date") != date:
         budget = {"utc_date": date, "image_calls": 0}
     maximum = max(0, min(3, int(os.getenv("PRODUCER_DAILY_IMAGE_LIMIT", "3"))))
-    if budget["image_calls"] >= maximum:
+    if budget["image_calls"] < 0 or budget["image_calls"] >= maximum:
         raise RuntimeError("Daily Gemini image-generation cap reached")
     budget["image_calls"] += 1
-    BUDGET_FILE.write_text(json.dumps(budget) + "\n", encoding="utf-8")
+    temp = BUDGET_FILE.with_suffix(".tmp")
+    temp.write_text(json.dumps(budget) + "\n", encoding="utf-8")
+    os.replace(temp, BUDGET_FILE)
 
 
 def gemini_image(visual: str) -> bytes:
