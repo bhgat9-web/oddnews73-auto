@@ -151,7 +151,8 @@ def article_text(url: str) -> str:
     soup = BeautifulSoup(r.content, "html.parser")
     for node in soup(["script", "style", "nav", "footer", "header", "aside", "form"]):
         node.decompose()
-    el = soup.find("article") or soup.find("main")
+    el = (soup.find("article") or soup.find("main") or
+          soup.select_one("div#text") or soup.select_one("div#story_text"))
     if el is None:
         raise ValueError("No article body: reject rather than fabricate")
     text = re.sub(r"\s+", " ", el.get_text(" ", strip=True))
