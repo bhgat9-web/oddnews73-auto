@@ -104,6 +104,54 @@ class EditorialSafetyTests(unittest.TestCase):
             self.assertEqual(logo.format, "PNG")
 
 
+    def test_prepared_queue_accepts_disclosed_conceptual_illustration(self):
+        """A valid news bundle must not be rejected for descriptive AI disclosure."""
+        import hashlib
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image_dir = root / "queue" / "images"
+            image_dir.mkdir(parents=True)
+            site = root / "site"
+            source_url = "https://phys.org/news/2026-11-hidden-million-years-rays-reveal.html"
+            slug = hashlib.sha256(source_url.encode()).hexdigest()[:16]
+            image_path = image_dir / (slug + ".jpg")
+            Image.new("RGB", (1080, 1350)).save(image_path, "JPEG")
+            item = {
+                "title": "A tiny flower hidden for 100 million years",
+                "source_url": source_url,
+                "published_utc": "2026-11-23T00:00:00+00:00",
+                "source": "Phys.org / Royal Botanic Gardens, Kew",
+                "expires_utc": "2026-11-30T00:00:00+00:00",
+                "ready": True,
+                "caption": (
+                    "Micro-CT revealed a fossil flower in a sandstone sample. "
+                    + source_url
+                    + "\\nVisual: AI-generated magnified conceptual illustration, "
+                    + "not a photograph."
+                ),
+                "slug": slug,
+                "image_sha256": hashlib.sha256(image_path.read_bytes()).hexdigest(),
+            }
+            item["bundle_digest"] = app.queue_digest(item)
+            (root / "queue" / "posts.json").write_text(json.dumps({"posts": [item]}))
+            run = root / "run.json"
+            with patch.object(app, "ROOT", root), \\
+                    patch.object(app, "STATE", root / "state.json"), \\
+                    patch.object(app, "RUN", run), \\
+                    patch.object(app, "SITE", site), \\
+                    patch.object(app, "SLOT_RESULT", root / "schedule_result.json"), \\
+                    patch.object(app, "NOW", return_value=app.datetime(
+                        2026, 11, 25, 14, 7, tzinfo=app.IST)), \\
+                    patch.dict("os.environ", {"LIVE_PUBLISH": "false", "STRICT_SCHEDULE": "false"}):
+                app.prepare_queued()
+                saved = app.load()
+            self.assertTrue(run.is_file())
+            self.assertEqual(saved["entries"][-1]["slug"], slug)
+            self.assertEqual(saved["entries"][-1]["status"], "draft")
+            self.assertTrue((site / "posts" / (slug + ".jpg")).is_file())
+
+
 class PublishingSafetyTests(unittest.TestCase):
     def test_publish_requires_live_enabled(self):
         with patch.dict("os.environ", {"LIVE_PUBLISH": "false"}):
