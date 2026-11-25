@@ -1,0 +1,158 @@
+name: ODD News 73 - Publishing Health Monitor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'state.json'
+      - 'queue/posts.json'
+      - '.github/workflows/publisher-health.yml'
+  schedule:
+    # Independent follow-up checks, after VPS retries end (IST).
+    - cron: '50 4,9,16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: oddnews73-publishing-health
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install editorial validation dependencies
+        run: pip install -r requirements.txt
+      - name: Check missing daily slots and approved artwork reserve
+        run: |
+          python - <<'PY'
+          import hashlib
+          import hmac
+          import io
+          import json
+          import re
+          import sys
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+          from PIL import Image
+          sys.path.insert(0, "src")
+          import oddnews73 as app
+
+          now = datetime.now(ZoneInfo("Asia/Kolkata"))
+          state = json.loads(Path("state.json").read_text(encoding="utf-8"))
+          posts = json.loads(Path("queue/posts.json").read_text(encoding="utf-8")).get("posts", [])
+          posted = {x.get("scheduled_slot") for x in state.get("entries", [])
+                    if x.get("status") == "posted"}
+          seen = set(state.get("seen_links", []))
+          used = {
+              e.get("slug") for e in state.get("entries", [])
+              if e.get("status") != "draft"
+          }
+          missed = []
+          for hour in (9, 14, 21):
+              scheduled = now.replace(hour=hour, minute=7, second=0, microsecond=0)
+              slot = scheduled.strftime("%Y-%m-%dT%H:%M%z")
+              if now >= scheduled + timedelta(minutes=40) and slot not in posted:
+                  missed.append(slot)
+
+          valid = []
+          invalid = []
+          for item in posts:
+              if item.get("ready") is not True:
+                  continue
+              try:
+                  url = item["source_url"]
+                  slug = hashlib.sha256(url.encode()).hexdigest()[:16]
+                  if slug != item["slug"] or not app.allowed(url):
+                      raise ValueError("source URL or slug")
+                  if url in seen or slug in used:
+                      continue
+                  published = datetime.fromisoformat(item["published_utc"])
+                  expires = datetime.fromisoformat(item["expires_utc"])
+                  if published.tzinfo is None or expires.tzinfo is None:
+                      raise ValueError("timezone")
+                  if not published <= now < expires or now - published > timedelta(days=7):
+                      continue
+                  if expires - published > timedelta(days=7):
+                      raise ValueError("expiry")
+                  caption = item["caption"]
+                  if not 50 <= len(caption) <= 2200 or url not in caption:
+                      raise ValueError("caption")
+                  if not re.search(r"\bAI-generated(?:\s+[\w-]+){0,6}\s+illustration\b",
+                                   caption, flags=re.IGNORECASE):
+                      raise ValueError("illustration disclosure")
+                  if not hmac.compare_digest(app.queue_digest(item), item.get("bundle_digest", "")):
+                      raise ValueError("content digest")
+                  p = Path("queue/images") / (slug + ".jpg")
+                  data = p.read_bytes()
+                  if not 0 < len(data) < 8_000_000:
+                      raise ValueError("image size")
+                  if not hmac.compare_digest(hashlib.sha256(data).hexdigest(),
+                                             item["image_sha256"]):
+                      raise ValueError("image digest")
+                  with Image.open(io.BytesIO(data)) as im:
+                      if im.format != "JPEG" or im.size != (1080, 1350):
+                          raise ValueError("image dimensions")
+                      im.verify()
+                  valid.append(slug)
+              except (KeyError, ValueError, TypeError, OSError) as exc:
+                  invalid.append(item.get("slug", "unknown") + ": " + str(exc)[:80])
+
+          latest_events = state.get("publisher_events", [])[-6:]
+          lines = [
+              "# ODD News 73 automated publishing health",
+              "",
+              f"Checked at **{now.strftime('%Y-%m-%d %H:%M IST')}**.",
+              f"Valid unused, unexpired artwork: **{len(valid)}** (target reserve: 6+).",
+              "",
+              "Missing slots (after all VPS retries): " +
+                  (", ".join(missed) if missed else "none for today so far"),
+          ]
+          if invalid:
+              lines += ["", "Invalid ready bundles:", *["- " + v for v in invalid[:12]]]
+          if latest_events:
+              lines += ["", "Recent VPS events:",
+                        *["- " + str(e.get("slot")) + ": " + str(e.get("event")) +
+                          " — " + str(e.get("reason", "")) for e in latest_events]]
+          body = "\n".join(lines) + "\n"
+          Path("/tmp/oddnews-health.md").write_text(body, encoding="utf-8")
+          with open(__import__("os").environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(body)
+          if missed or len(valid) < 6 or invalid:
+              Path("/tmp/oddnews-alert.md").write_text(
+                  body + "\nAction: prepare additional verified, story-specific posts "
+                  "and inspect VPS logs for any failed slot. "
+                  "Do not manually replay an ambiguous Meta publication.\n",
+                  encoding="utf-8")
+          print(body)
+          PY
+      - name: Open or update one GitHub health alert
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 \
+            --json number,title \
+            --jq '.[] | select(.title == "ODD News 73 - Publishing attention needed") | .number' \
+            | head -n 1)"
+          if [ -s /tmp/oddnews-alert.md ]; then
+            if [ -n "$issue" ]; then
+              gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" \
+                --body-file /tmp/oddnews-alert.md
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" \
+                --title "ODD News 73 - Publishing attention needed" \
+                --body-file /tmp/oddnews-alert.md
+            fi
+          elif [ -n "$issue" ]; then
+            gh issue close "$issue" --repo "$GITHUB_REPOSITORY" \
+              --comment "All due slots are recorded as posted and the approved queue reserve is sufficient."
+          fi
