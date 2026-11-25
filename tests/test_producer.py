@@ -20,7 +20,7 @@ import producer
 class ProducerTests(unittest.TestCase):
     def test_disabled_producer_never_calls_cloud_ai_or_git(self):
         with patch.dict(os.environ, {"PRODUCER_ENABLED": "false"}), \
-             patch.object(producer, "cf") as ai, \
+             patch.object(producer, "gemini") as ai, \
              patch.object(producer, "git") as git:
             with self.assertRaisesRegex(RuntimeError, "disabled"):
                 producer.run()
@@ -74,13 +74,9 @@ class ProducerTests(unittest.TestCase):
             "evidence_quotes": ["The sandstone contains a fossil",
                                 "The specimen was taken to the laboratory"]
         }
-        def fake_ai(model, payload, timeout=90):
-            if model == producer.MODEL_TEXT:
-                return {"response": json.dumps(edited)}
-            return {"image": base64.b64encode(raw.getvalue()).decode("ascii")}
         with patch.object(producer, "article_text", return_value="Verified article body"), \
              patch.object(producer, "write_story", return_value=edited), \
-             patch.object(producer, "cf", side_effect=fake_ai):
+             patch.object(producer, "gemini_image", return_value=raw.getvalue()):
             item, jpg = producer.make_bundle(story)
         self.assertTrue(item["ready"])
         self.assertEqual(item["image_sha256"], hashlib.sha256(jpg).hexdigest())
@@ -90,6 +86,44 @@ class ProducerTests(unittest.TestCase):
         self.assertEqual(datetime.fromisoformat(item["expires_utc"]) -
                          datetime.fromisoformat(item["published_utc"]),
                          producer.timedelta(days=7))
+
+
+    def test_daily_paid_image_budget_is_bounded_and_persists(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            budget = Path(temp) / "budget.json"
+            with patch.object(producer, "BUDGET_FILE", budget), \
+                 patch.dict(os.environ, {"PRODUCER_DAILY_IMAGE_LIMIT": "2"}):
+                producer.reserve_image_budget()
+                producer.reserve_image_budget()
+                self.assertEqual(json.loads(budget.read_text())["image_calls"], 2)
+                with self.assertRaisesRegex(RuntimeError, "cap"):
+                    producer.reserve_image_budget()
+
+    def test_gemini_image_request_extracts_only_real_base64_image(self):
+        image = Image.new("RGB", (512, 512), (12, 45, 78))
+        b = io.BytesIO()
+        image.save(b, "PNG")
+        data = base64.b64encode(b.getvalue()).decode()
+        response = {"candidates": [{"content": {"parts": [
+            {"text": "Here is the image."},
+            {"inlineData": {"mimeType": "image/png", "data": data}}
+        ]}}]}
+        with patch.object(producer, "reserve_image_budget") as cap, \
+             patch.object(producer, "gemini", return_value=response) as call:
+            raw = producer.gemini_image("a rare fish underwater")
+        self.assertEqual(raw, b.getvalue())
+        cap.assert_called_once()
+        args, kw = call.call_args
+        self.assertEqual(args[0], producer.MODEL_IMAGE)
+        self.assertIn("IMAGE", args[1]["generationConfig"]["responseModalities"])
+
+    def test_text_editor_uses_supported_existing_gemini_model(self):
+        payload = {"candidates": [{"content": {"parts": [{"text": '{"ok":true}'}]}}]}
+        with patch.object(producer, "gemini", return_value=payload) as api:
+            response = producer.gemini_text("Test instruction", "Article")
+        self.assertEqual(json.loads(response), {"ok": True})
+        self.assertEqual(api.call_args.args[0], producer.MODEL_TEXT)
 
 
 if __name__ == "__main__":
