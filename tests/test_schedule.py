@@ -13,11 +13,13 @@ import oddnews73 as app
 
 
 class ScheduleConfigurationTests(unittest.TestCase):
-    def test_vps_timer_covers_three_attempts_in_each_ist_slot(self):
+    def test_vps_timer_covers_six_attempts_in_each_ist_slot(self):
         timer = (app.ROOT / "vps/oddnews73-publisher.timer").read_text()
         configured = re.findall(r"OnCalendar=\*-\*-\* (\d\d):(\d\d):00", timer)
-        expected = [(f"{hour:02d}", f"{minute:02d}")
-                    for hour in (9, 14, 21) for minute in (7, 17, 27)]
+        expected = [(f"{hour + offset:02d}", f"{minute:02d}")
+                    for hour in (9, 14, 21)
+                    for offset, minute in ((0, 7), (0, 17), (0, 27),
+                                           (0, 47), (1, 7), (1, 27))]
         self.assertCountEqual(configured, expected)
         for hour, minute in configured:
             local = datetime(2026, 11, 20, int(hour), int(minute), tzinfo=app.IST)
