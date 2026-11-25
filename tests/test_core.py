@@ -127,7 +127,7 @@ class EditorialSafetyTests(unittest.TestCase):
                 "caption": (
                     "Micro-CT revealed a fossil flower in a sandstone sample. "
                     + source_url
-                    + "\\nVisual: AI-generated magnified conceptual illustration, "
+                    + "\nVisual: AI-generated magnified conceptual illustration, "
                     + "not a photograph."
                 ),
                 "slug": slug,
@@ -136,13 +136,13 @@ class EditorialSafetyTests(unittest.TestCase):
             item["bundle_digest"] = app.queue_digest(item)
             (root / "queue" / "posts.json").write_text(json.dumps({"posts": [item]}))
             run = root / "run.json"
-            with patch.object(app, "ROOT", root), \\
-                    patch.object(app, "STATE", root / "state.json"), \\
-                    patch.object(app, "RUN", run), \\
-                    patch.object(app, "SITE", site), \\
-                    patch.object(app, "SLOT_RESULT", root / "schedule_result.json"), \\
+            with patch.object(app, "ROOT", root), \
+                    patch.object(app, "STATE", root / "state.json"), \
+                    patch.object(app, "RUN", run), \
+                    patch.object(app, "SITE", site), \
+                    patch.object(app, "SLOT_RESULT", root / "schedule_result.json"), \
                     patch.object(app, "NOW", return_value=app.datetime(
-                        2026, 11, 25, 14, 7, tzinfo=app.IST)), \\
+                        2026, 11, 25, 14, 7, tzinfo=app.IST)), \
                     patch.dict("os.environ", {"LIVE_PUBLISH": "false", "STRICT_SCHEDULE": "false"}):
                 app.prepare_queued()
                 saved = app.load()
