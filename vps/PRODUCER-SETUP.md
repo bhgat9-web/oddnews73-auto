@@ -68,18 +68,19 @@ GEMINI_IMAGE_PAID_OK=yes
 PRODUCER_DAILY_IMAGE_LIMIT=3
 ~~~
 
-Once the user has explicitly authorized paid image generation and the first
-test image has been checked, deploy the separate timer:
+Once the user has explicitly authorized the paid image API and reviewed a
+trial visual, install the separate producer with a **single guarded command**
+from the Hostinger root console:
 
 ~~~bash
-sudo -u oddnews73 git -C /srv/oddnews73/repo pull --ff-only origin main
-sudo -u oddnews73 /srv/oddnews73/.venv/bin/python -m pip install -r /srv/oddnews73/repo/requirements.txt
-sudo install -m 0644 /srv/oddnews73/repo/vps/oddnews73-producer.service /etc/systemd/system/oddnews73-producer.service
-sudo install -m 0644 /srv/oddnews73/repo/vps/oddnews73-producer.timer /etc/systemd/system/oddnews73-producer.timer
-sudo systemctl daemon-reload
-sudo systemctl enable --now oddnews73-producer.timer
-sudo systemctl list-timers oddnews73-producer.timer --no-pager
+sudo bash /srv/oddnews73/repo/vps/install-producer.sh
 ~~~
+
+The installer refuses to enable without `GEMINI_API_KEY`,
+`GEMINI_IMAGE_PAID_OK=yes` and `PRODUCER_ENABLED=true` in the private
+environment file. It updates the producer's dependencies, runs offline
+safety tests and installs its own systemd timer. It does not read or display
+private credential values.
 
 This does not touch `oddnews73-publisher.timer` or the trading app. To
 pause content production only:
