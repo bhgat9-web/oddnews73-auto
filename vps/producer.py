@@ -296,35 +296,42 @@ def run():
         if need == 0:
             print("Queue already stocked.")
             return
-        added = 0
+        staged = []
         for story in candidate_stories(state, data.get("posts", [])):
-            if added >= need:
+            if len(staged) >= need:
                 break
             try:
                 item, jpg = make_bundle(story)
                 if len(item["caption"]) > 2200:
                     raise ValueError("Instagram caption too long")
-                IMAGES.mkdir(parents=True, exist_ok=True)
-                (IMAGES / (item["slug"] + ".jpg")).write_bytes(jpg)
-                data["posts"].append(item)
-                added += 1
+                staged.append((item, jpg))
                 print("Prepared original, source-linked artwork:", item["slug"],
                       item["title"])
             except (requests.RequestException, ValueError, KeyError, TypeError,
                     OSError) as exc:
                 print("Editorial reject:", story["source_url"], str(exc)[:140])
                 continue
-        if not added:
+            except RuntimeError as exc:
+                # An account, quota or provider problem should not destroy
+                # already prepared successful stories.
+                print("AI service stopped:", str(exc)[:140])
+                break
+        if not staged:
             print("No verified sources passed today; queue unchanged.")
             return
+        # Leave the repository unchanged until all expensive AI work finishes.
+        IMAGES.mkdir(parents=True, exist_ok=True)
+        for item, jpg in staged:
+            (IMAGES / (item["slug"] + ".jpg")).write_bytes(jpg)
+            data["posts"].append(item)
         QUEUE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
                          encoding="utf-8")
         # This queue is separately validated by the existing publication and CI
         # safeguards. Never touch Instagram tokens or publishing markers here.
         git("add", "--", "queue/posts.json", "queue/images")
-        git("commit", "-m", f"ODD News 73: automatically replenish {added} stories")
+        git("commit", "-m", f"ODD News 73: automatically replenish {len(staged)} stories")
         git("push", "origin", "HEAD:main")
-        print("Queue replenished:", added)
+        print("Queue replenished:", len(staged))
 
 
 def main():
