@@ -1,16 +1,8 @@
-name: ODD News 73 - Automatic Instagram Publishing
+name: ODD News 73 - Manual Preview (VPS Owns Scheduled Publishing)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - 'queue/**'
-      - 'tests/**'
-      - 'requirements.txt'
-      - '.github/workflows/oddnews73.yml'
-  # Live scheduling moved to the isolated VPS timer.
+  # Live scheduling and GitHub Pages image publishing are owned separately.
+  # Do not prepare or push drafts on every code change; that races with VPS.
   workflow_dispatch:
     inputs:
       demo_mode:
