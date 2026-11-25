@@ -329,6 +329,8 @@ def run():
         raise RuntimeError("Producer disabled; no external AI calls made")
     if not os.getenv("GEMINI_API_KEY", "").strip():
         raise RuntimeError("Existing Gemini API key not configured on the VPS")
+    if os.getenv("GEMINI_IMAGE_PAID_OK", "").lower() != "yes":
+        raise RuntimeError("Paid Gemini image API has not been explicitly authorized")
     LOCK.touch(exist_ok=True)
     with LOCK.open("r+") as f:
         try:
@@ -396,6 +398,8 @@ def main():
     if args.command == "check":
         print("Producer installed. Enabled:", os.getenv("PRODUCER_ENABLED") == "true")
         print("Gemini API key present:", bool(os.getenv("GEMINI_API_KEY")))
+        print("Paid image generation explicitly authorized:",
+              os.getenv("GEMINI_IMAGE_PAID_OK", "").lower() == "yes")
         print("No AI generation, Instagram post, or Git update made.")
         return
     run()
