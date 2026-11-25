@@ -1,0 +1,14 @@
+[Unit]
+Description=ODD News 73 - prepare verified story-specific visuals before publishing
+
+[Timer]
+OnCalendar=*-*-* 05:30:00
+OnCalendar=*-*-* 12:00:00
+OnCalendar=*-*-* 18:00:00
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+Unit=oddnews73-producer.service
+
+[Install]
+WantedBy=timers.target
