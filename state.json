@@ -421,7 +421,7 @@
       "source_url": "https://phys.org/news/2026-11-hidden-million-years-rays-reveal.html",
       "published_utc": "2026-11-23T00:00:00+00:00",
       "expires_utc": "2026-11-30T00:00:00+00:00",
-      "status": "in_flight",
+      "status": "posted",
       "demo": false,
       "created_utc": "2026-11-25T16:43:30.902553+00:00",
       "prepared_queue": true,
@@ -429,7 +429,11 @@
       "automatic_digest": "4949ca838ef4b0a28a2550e0b55668431f6324c2d4b79f81779976b4690d454b",
       "authorization": "owner-enabled prepared-queue publishing",
       "scheduled_slot": "2026-11-25T21:07+0530",
-      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/cf66c7b4f143df84.jpg"
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/cf66c7b4f143df84.jpg",
+      "container_id": "17906095527413585",
+      "instagram_media_id": "17957589186301419",
+      "instagram_permalink": "https://www.instagram.com/p/DgK_LGPjYaL/",
+      "posted_utc": "2026-11-25T16:43:59.617409+00:00"
     }
   ],
   "seen_links": [
