@@ -2,7 +2,7 @@
 """ODD News 73: isolated, opt-in, source-linked artwork queue replenisher.
 
 No Instagram API calls. No publishing, no generic filler graphics.
-Requires a separately provisioned Cloudflare Workers AI token and account ID.
+Reuses the existing GEMINI_API_KEY (separate image generation API billing may apply).
 """
 from __future__ import annotations
 
@@ -28,33 +28,97 @@ sys.path.insert(0, str(BASE / "src"))
 import oddnews73 as pub
 
 LOCK = BASE.parent / "publisher.lock"
-MODEL_TEXT = "@cf/qwen/qwen3-30b-a3b-fp8"
-MODEL_IMAGE = "@cf/black-forest-labs/flux-1-schnell"
+MODEL_TEXT = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-flash-lite")
+MODEL_IMAGE = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-lite-image")
+TEXT_MODELS = {"gemini-3.1-flash-lite", "gemini-3.5-flash-lite"}
+IMAGE_MODELS = {"gemini-3.1-flash-lite-image", "gemini-3.1-flash-image"}
 QUEUE = BASE / "queue" / "posts.json"
 IMAGES = BASE / "queue" / "images"
 MAX_QUEUE = 9
 MAX_NEW = 3
-MAX_CANDIDATES = 6
+MAX_CANDIDATES = 8
 UA = pub.UA
+BUDGET_FILE = BASE.parent / "producer_budget.json"
 
 
-def cf(model: str, payload: dict, timeout: int = 90) -> dict:
-    account = os.environ["CLOUDFLARE_ACCOUNT_ID"].strip()
-    token = os.environ["CLOUDFLARE_API_TOKEN"].strip()
-    if not re.fullmatch(r"[a-fA-F0-9]{32}", account):
-        raise RuntimeError("CLOUDFLARE_ACCOUNT_ID must be the 32-hex-character account ID")
-    url = f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{model}"
-    r = requests.post(url, headers={"Authorization": "Bearer " + token},
-                      json=payload, timeout=timeout)
+def gemini(model: str, payload: dict, timeout: int = 90) -> dict:
+    key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is missing from the dedicated service environment")
+    if model not in TEXT_MODELS | IMAGE_MODELS:
+        raise ValueError("Unsupported Gemini model; no API call attempted")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    r = requests.post(
+        url,
+        headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+        json=payload,
+        timeout=timeout,
+    )
     if r.status_code in (401, 403):
-        raise RuntimeError("Cloudflare AI authorization failed; check account token permissions")
+        raise RuntimeError("Gemini API credential or model access denied")
     if r.status_code == 429:
-        raise RuntimeError("Cloudflare AI quota or rate limit reached")
+        raise RuntimeError("Gemini model quota exhausted; no fallback paid provider")
+    if r.status_code == 404:
+        raise RuntimeError(f"Gemini model unavailable: {model}")
     r.raise_for_status()
     data = r.json()
-    if not data.get("success", True) or not isinstance(data.get("result"), dict):
-        raise RuntimeError("Cloudflare AI returned an unsuccessful response")
-    return data["result"]
+    if not isinstance(data, dict) or not data.get("candidates"):
+        raise ValueError("Gemini returned no approved candidate (possible safety refusal)")
+    return data
+
+
+def gemini_text(instruction: str, user: str) -> str:
+    data = gemini(MODEL_TEXT, {
+        "contents": [{"role": "user", "parts": [
+            {"text": instruction + "\n\n" + user}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 1400,
+            "responseMimeType": "application/json",
+        },
+    }, timeout=90)
+    return "".join(
+        part.get("text", "") for part in
+        data["candidates"][0].get("content", {}).get("parts", [])
+    ).strip()
+
+
+def reserve_image_budget():
+    """Conservative global daily cap, persisted on VPS *before* paid image calls."""
+    now = datetime.now(timezone.utc)
+    date = now.strftime("%Y-%m-%d")
+    # Only project-specific spend tracking. No secrets are recorded.
+    try:
+        budget = json.loads(BUDGET_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        budget = {}
+    if budget.get("utc_date") != date:
+        budget = {"utc_date": date, "image_calls": 0}
+    maximum = max(0, min(3, int(os.getenv("PRODUCER_DAILY_IMAGE_LIMIT", "3"))))
+    if budget["image_calls"] >= maximum:
+        raise RuntimeError("Daily Gemini image-generation cap reached")
+    budget["image_calls"] += 1
+    BUDGET_FILE.write_text(json.dumps(budget) + "\n", encoding="utf-8")
+
+
+def gemini_image(visual: str) -> bytes:
+    reserve_image_budget()
+    data = gemini(MODEL_IMAGE, {
+        "contents": [{"role": "user", "parts": [{"text": visual}]}],
+        "generationConfig": {
+            "responseModalities": ["IMAGE"],
+            "imageConfig": {"aspectRatio": "4:5", "imageSize": "1K"},
+        },
+    }, timeout=120)
+    for part in data["candidates"][0].get("content", {}).get("parts", []):
+        image = part.get("inlineData") or part.get("inline_data") or {}
+        encoded = image.get("data")
+        if isinstance(encoded, str) and image.get("mimeType", image.get("mime_type", "")).startswith("image/"):
+            raw = base64.b64decode(encoded, validate=True)
+            if 0 < len(raw) < 8_000_000:
+                return raw
+            raise ValueError("Image generated but exceeds approved size")
+    raise ValueError("Gemini produced no image; artwork was not queued")
 
 
 def canonical(value: str) -> str:
@@ -143,11 +207,7 @@ def write_story(story: dict, evidence_text: str) -> dict:
         "Return JSON only, without markdown."
     )
     user = "Headline: " + story["title"] + "\nArticle text: " + evidence_text[:9000]
-    result = cf(MODEL_TEXT, {"messages": [
-        {"role": "system", "content": instruction},
-        {"role": "user", "content": user}],
-        "max_tokens": 800, "temperature": 0.2})
-    response = str(result.get("response", "")).strip()
+    response = gemini_text(instruction, user)
     if response.startswith("```"):
         response = response.split("\n", 1)[1].rsplit("```", 1)[0].strip()
     try:
@@ -240,11 +300,7 @@ def make_bundle(story: dict) -> tuple[dict, bytes]:
         "visually truthful to the article, no written characters, no label, "
         "no printed headline. " + edit["image_prompt"]
     )[:2048]
-    model = cf(MODEL_IMAGE, {"prompt": visual, "steps": 4}, timeout=120)
-    image_b64 = model.get("image")
-    if not isinstance(image_b64, str):
-        raise ValueError("Image API returned no encoded image")
-    raw = base64.b64decode(image_b64, validate=True)
+    raw = gemini_image(visual)
     jpeg = poster(raw, edit["headline"])
     url = story["source_url"]
     slug = hashlib.sha256(url.encode()).hexdigest()[:16]
@@ -271,9 +327,8 @@ def git(*args):
 def run():
     if os.getenv("PRODUCER_ENABLED", "").lower() != "true":
         raise RuntimeError("Producer disabled; no external AI calls made")
-    if not os.getenv("CLOUDFLARE_API_TOKEN", "").strip() or not os.getenv(
-        "CLOUDFLARE_ACCOUNT_ID", "").strip():
-        raise RuntimeError("Missing private Cloudflare credentials")
+    if not os.getenv("GEMINI_API_KEY", "").strip():
+        raise RuntimeError("Existing Gemini API key not configured on the VPS")
     LOCK.touch(exist_ok=True)
     with LOCK.open("r+") as f:
         try:
@@ -340,9 +395,7 @@ def main():
     args = parser.parse_args()
     if args.command == "check":
         print("Producer installed. Enabled:", os.getenv("PRODUCER_ENABLED") == "true")
-        print("Cloudflare credentials present:", bool(
-            os.getenv("CLOUDFLARE_API_TOKEN") and
-            os.getenv("CLOUDFLARE_ACCOUNT_ID")))
+        print("Gemini API key present:", bool(os.getenv("GEMINI_API_KEY")))
         print("No AI generation, Instagram post, or Git update made.")
         return
     run()
