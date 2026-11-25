@@ -34,7 +34,7 @@ def slot_at(now: datetime | None = None) -> str | None:
     local = (now or datetime.now(IST)).astimezone(IST)
     for hour in SLOT_HOURS:
         start = local.replace(hour=hour, minute=7, second=0, microsecond=0)
-        if timedelta(0) <= local - start < timedelta(minutes=40):
+        if timedelta(0) <= local - start < timedelta(hours=3):
             return start.strftime("%Y-%m-%dT%H:%M%z")
     return None
 
