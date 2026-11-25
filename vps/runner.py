@@ -71,6 +71,23 @@ def commit_push(message: str):
         raise RuntimeError("Unable to inspect staged files")
 
 
+def persist_outcome(event: str, slot: str, reason: str = ""):
+    """Write safe, non-secret publication diagnostics to GitHub history."""
+    state = app.load()
+    item = {
+        "event": event,
+        "slot": slot,
+        "at_ist": datetime.now(IST).isoformat(),
+        "reason": reason[:200],
+    }
+    state["publisher_events"] = (
+        state.get("publisher_events", []) + [item]
+    )[-120:]
+    app.save(state)
+    commit_push("ODD News 73: record VPS " + event)
+    report("outcome_saved", slot=slot, outcome=event)
+
+
 def wait_for_image(slug: str, max_seconds: int = 540):
     url = SITE_URL.rstrip("/") + "/posts/" + slug + ".jpg"
     data = (BASE / "site" / "posts" / (slug + ".jpg")).read_bytes()
@@ -115,46 +132,56 @@ def main():
         os.environ["STRICT_SCHEDULE"] = "false"
 
         git("pull", "--ff-only", "origin", "main")
-        state = app.load()
-        if any(e.get("scheduled_slot") == slot and e.get("status") == "posted"
-               for e in state["entries"]):
-            report("already_posted", slot=slot)
-            return
-        if any(e.get("status") in ("in_flight", "needs_review")
-               for e in state["entries"]):
-            raise RuntimeError("Previous publication ambiguous; human review required")
-        if any(e.get("status") == "pending" and e.get("scheduled_slot") != slot
-               for e in state["entries"]):
-            raise RuntimeError("Pending post belongs to an earlier slot; review required")
-
-        # Publish only source-vetted artwork prepared in the queue. Never replace
-        # approved editorial artwork with a generic generated card.
-        app.prepare_queued()
-        if not app.RUN.is_file():
-            report("queue_exhausted", slot=slot,
-                   reason="No unused approved story-specific artwork")
-            return
-
-        state = app.load()
-        rec = app.current(state)
-        if rec["status"] != "pending" or rec.get("demo"):
-            raise RuntimeError("No approved non-demo pending draft")
-        rec["scheduled_slot"] = slot
-        rec["automatic_digest"] = app.approval_digest(rec)
-        app.save(state)
-
-        # Publish only after the committed image is publicly available.
-        commit_push("ODD News 73: VPS staged source-linked draft")
-        wait_for_image(rec["slug"])
-        app.preflight(SITE_URL)
-        # Persist marker before Meta POST to prevent ambiguous duplicate attempts.
-        commit_push("ODD News 73: VPS publishing in flight")
         try:
-            app.publish()
-        finally:
-            commit_push("ODD News 73: VPS publication outcome")
-        report("published", slot=slot, title=rec["title"])
+            state = app.load()
+            if any(e.get("scheduled_slot") == slot and e.get("status") == "posted"
+                   for e in state["entries"]):
+                report("already_posted", slot=slot)
+                return
+            if any(e.get("status") in ("in_flight", "needs_review")
+                   for e in state["entries"]):
+                raise RuntimeError("Previous publication ambiguous; human review required")
+            if any(e.get("status") == "pending" and e.get("scheduled_slot") != slot
+                   for e in state["entries"]):
+                raise RuntimeError("Pending post belongs to an earlier slot; review required")
 
+            # Publish only source-vetted artwork prepared in the queue. Never replace
+            # approved editorial artwork with a generic generated card.
+            app.prepare_queued()
+            if not app.RUN.is_file():
+                report("queue_exhausted", slot=slot,
+                       reason="No unused approved story-specific artwork")
+                persist_outcome("queue_exhausted", slot,
+                                "No unused approved story-specific artwork")
+                return
+
+            state = app.load()
+            rec = app.current(state)
+            if rec["status"] != "pending" or rec.get("demo"):
+                raise RuntimeError("No approved non-demo pending draft")
+            rec["scheduled_slot"] = slot
+            rec["automatic_digest"] = app.approval_digest(rec)
+            app.save(state)
+
+            # Publish only after the committed image is publicly available.
+            commit_push("ODD News 73: VPS staged source-linked draft")
+            wait_for_image(rec["slug"])
+            app.preflight(SITE_URL)
+            # Persist marker before Meta POST to prevent ambiguous duplicate attempts.
+            commit_push("ODD News 73: VPS publishing in flight")
+            try:
+                app.publish()
+            finally:
+                commit_push("ODD News 73: VPS publication outcome")
+            report("published", slot=slot, title=rec["title"])
+
+        except Exception as exc:
+            try:
+                persist_outcome("failed", slot, str(exc))
+            except Exception as record_exc:
+                report("diagnostics_save_failed", slot=slot,
+                       reason=str(record_exc)[:180])
+            raise
 
 if __name__ == "__main__":
     try:
