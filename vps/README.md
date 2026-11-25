@@ -6,8 +6,10 @@ rules are changed. The server timezone remains Asia/Kolkata.
 
 ## Architecture
 
-The systemd timer triggers at 09:07, 14:07, and 21:07 IST, with backup checks
-10 and 20 minutes later. The runner prevents duplicates within each slot.
+The systemd timer triggers at 09:07, 14:07, and 21:07 IST, with five
+backup checks at +10, +20, +40, +60, and +80 minutes. The runner
+prevents duplicates within each slot and records unsuccessful attempts
+in GitHub state.json so an independent monitor can report problems.
 
 The editorial system publishes only prepared, attributed, story-specific
 1080x1350 artwork from the reviewed queue. If the queue runs out, the slot is
@@ -93,3 +95,21 @@ sudo systemctl disable --now oddnews73-publisher.timer
 - No new inbound public server port is opened.
 - Initial deployment needs one-time authenticated SSH access and local secret entry.
 
+
+
+## Apply a newer timer schedule to an already running VPS
+
+Git pulls update `vps/runner.py` but **do not update installed systemd timer
+units**. From Hostinger's root console, run:
+
+~~~bash
+sudo -u oddnews73 git -C /srv/oddnews73/repo pull --ff-only origin main
+sudo install -m 0644 /srv/oddnews73/repo/vps/oddnews73-publisher.timer /etc/systemd/system/oddnews73-publisher.timer
+sudo systemctl daemon-reload
+sudo systemctl restart oddnews73-publisher.timer
+sudo systemctl list-timers oddnews73-publisher.timer --no-pager
+~~~
+
+Only the ODD News 73 timer unit is refreshed. This does not restart the
+trading project or trigger a manual Instagram post. If any command fails,
+inspect its output before continuing.
