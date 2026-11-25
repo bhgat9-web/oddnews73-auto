@@ -9,7 +9,7 @@ on:
       - '.github/workflows/publisher-health.yml'
   schedule:
     # Independent follow-up checks, after VPS retries end (IST).
-    - cron: '50 4,9,16 * * *'
+    - cron: '15 5,10,17 * * *'
   workflow_dispatch:
 
 permissions:
@@ -60,7 +60,7 @@ jobs:
           for hour in (9, 14, 21):
               scheduled = now.replace(hour=hour, minute=7, second=0, microsecond=0)
               slot = scheduled.strftime("%Y-%m-%dT%H:%M%z")
-              if now >= scheduled + timedelta(minutes=40) and slot not in posted:
+              if now >= scheduled + timedelta(minutes=95) and slot not in posted:
                   missed.append(slot)
 
           valid = []
