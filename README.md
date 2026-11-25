@@ -1,5 +1,33 @@
 # ODD News 73 — prepared-image publishing
 
+## Current production reliability (VPS)
+
+**The Ubuntu VPS systemd timer, not GitHub Actions, owns Instagram publishing.**
+The primary slots are 09:07, 14:07, and 21:07 IST. The repository now
+defines five duplicate-safe recovery attempts for each slot (+10, +20,
++40, +60, +80 minutes). An installed VPS timer must be refreshed from
+`vps/oddnews73-publisher.timer` and reloaded with systemd before the
+expanded recovery schedule becomes active. The Python worker pulls the
+latest code itself at each scheduled attempt.
+
+The VPS records `publisher_events` in `state.json` on empty-queue
+and error outcomes, without recording Instagram credentials. The
+independent `publisher-health.yml` GitHub Actions workflow checks the
+confirmed Instagram posting history and strict, unexpired artwork
+inventory. It opens/updates one GitHub issue when a due slot was missed,
+an artwork bundle is invalid, or fewer than six approved posts remain.
+Issue notifications depend on GitHub account notification settings.
+
+**This is not a guarantee of three daily posts.** Third-party outages,
+Meta publishing limits, account restrictions, expired tokens, and
+insufficient verified artwork still block publishing. Unverified or
+generic filler content is never substituted, and ambiguous Meta POST
+results never trigger blind retries. A future hands-free image/news
+production pipeline would need its own permitted generation workflow and
+editorial/source validation.
+
+---
+
 Scheduled publishing uses images and captions prepared in ChatGPT. It makes
 **no generative AI API calls**, so it does not require Gemini billing or an
 image-generation API subscription.
