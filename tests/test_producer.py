@@ -27,6 +27,28 @@ class ProducerTests(unittest.TestCase):
         ai.assert_not_called()
         git.assert_not_called()
 
+    def test_paid_images_require_separate_explicit_opt_in(self):
+        with patch.dict(os.environ, {
+            "PRODUCER_ENABLED": "true",
+            "GEMINI_API_KEY": "dummy-secret-for-test",
+            "GEMINI_IMAGE_PAID_OK": "",
+        }), patch.object(producer, "git") as git, \
+             patch.object(producer, "gemini") as api:
+            with self.assertRaisesRegex(RuntimeError, "explicitly authorized"):
+                producer.run()
+        git.assert_not_called()
+        api.assert_not_called()
+
+    def test_unreadable_paid_budget_fails_closed(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp:
+            budget = Path(temp) / "budget.json"
+            budget.write_text("not valid json")
+            with patch.object(producer, "BUDGET_FILE", budget):
+                with self.assertRaisesRegex(RuntimeError, "unreadable"):
+                    producer.reserve_image_budget()
+            self.assertEqual(budget.read_text(), "not valid json")
+
     def test_evidence_quotes_must_appear_in_article(self):
         body = (
             "Scientists discovered a bright yellow burbot in the bay. "
