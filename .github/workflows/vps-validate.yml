@@ -23,7 +23,7 @@ jobs:
       - name: Check deployment script and publisher syntax
         run: |
           bash -n vps/install.sh vps/activate.sh
-          python -m py_compile vps/runner.py
+          python -m py_compile vps/runner.py vps/producer.py
       - name: Install existing publisher dependencies
         run: pip install -r requirements.txt
       - name: Verify existing editorial and publisher safeguards
@@ -38,5 +38,12 @@ jobs:
           service = Path("vps/oddnews73-publisher.service").read_text()
           assert "User=oddnews73" in service
           assert "ProtectSystem=strict" in service
+          producer_timer = Path("vps/oddnews73-producer.timer").read_text()
+          assert producer_timer.count("OnCalendar=") == 3
+          assert "Unit=oddnews73-producer.service" in producer_timer
+          producer_service = Path("vps/oddnews73-producer.service").read_text()
+          assert "User=oddnews73" in producer_service
+          assert "ProtectSystem=strict" in producer_service
+          assert "producer.py run" in producer_service
           print("VPS deployment syntax, timer slots, and service isolation verified.")
           PY
