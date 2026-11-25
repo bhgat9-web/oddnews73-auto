@@ -148,7 +148,8 @@ def write_story(story: dict, evidence_text: str) -> dict:
         {"role": "user", "content": user}],
         "max_tokens": 800, "temperature": 0.2})
     response = str(result.get("response", "")).strip()
-    response = re.sub(r"^\\`\\`\\`(?:json)?\s*|\s*\\`\\`\\`$", "", response)
+    if response.startswith("```"):
+        response = response.split("\n", 1)[1].rsplit("```", 1)[0].strip()
     try:
         obj = json.loads(response)
     except (ValueError, TypeError) as exc:
