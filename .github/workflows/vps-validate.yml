@@ -33,7 +33,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           timer = Path("vps/oddnews73-publisher.timer").read_text()
-          assert timer.count("OnCalendar=") == 9
+          assert timer.count("OnCalendar=") == 18
           assert "Persistent=false" in timer
           service = Path("vps/oddnews73-publisher.service").read_text()
           assert "User=oddnews73" in service
