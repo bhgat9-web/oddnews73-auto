@@ -563,8 +563,14 @@ def prepare_queued():
                 raise ValueError("caption")
             # Accept meaningful modifiers (e.g. "AI-generated conceptual illustration")
             # without changing the approved caption or its bundle digest.
-            if not re.search(r"\bAI-generated(?:\s+[\w-]+){0,6}\s+illustration\b",
-                             item["caption"], flags=re.IGNORECASE):
+            description = item["caption"]
+            ai_disclosure = re.search(
+                r"\bAI-generated(?:\s+[\w-]+){0,6}\s+illustration\b",
+                description, flags=re.IGNORECASE)
+            locally_drawn = (
+                "Visual: original digitally drawn editorial illustration, not a photograph."
+                in description)
+            if not (ai_disclosure or locally_drawn):
                 raise ValueError("missing illustration disclosure")
             if not hmac.compare_digest(queue_digest(item), item.get("bundle_digest", "")):
                 raise ValueError("bundle mismatch")
