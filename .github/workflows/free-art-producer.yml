@@ -9,8 +9,8 @@ on:
       - 'vps/free_art.py'
       - 'vps/producer.py'
       - '.github/workflows/free-art-producer.yml'
-  schedule:
-    - cron: '0 0,7,12 * * *'
+  # Automatic publishing of unreviewed vector art is intentionally disabled.
+  # Retain a manual QA path, separate from the functioning VPS publisher.
   workflow_dispatch:
 
 permissions:
