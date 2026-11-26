@@ -26,10 +26,12 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 BASE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BASE / "src"))
 import oddnews73 as pub
+import free_art
 
 LOCK = BASE.parent / "publisher.lock"
 MODEL_TEXT = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-flash-lite")
 MODEL_IMAGE = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-lite-image")
+IMAGE_MODE = os.getenv("PRODUCER_IMAGE_MODE", "free_original").strip().lower()
 TEXT_MODELS = {"gemini-3.1-flash-lite", "gemini-3.5-flash-lite"}
 IMAGE_MODELS = {"gemini-3.1-flash-lite-image", "gemini-3.1-flash-image"}
 QUEUE = BASE / "queue" / "posts.json"
@@ -308,7 +310,16 @@ def make_bundle(story: dict) -> tuple[dict, bytes]:
         "visually truthful to the article, no written characters, no label, "
         "no printed headline. " + edit["image_prompt"]
     )[:2048]
-    raw = gemini_image(visual)
+    if IMAGE_MODE == "free_original":
+        # A finite library of original drawings; unknown subjects are rejected,
+        # never substituted with unrelated generic graphic artwork.
+        raw = free_art.render(story["title"])
+        disclosure = "Visual: original digitally drawn editorial illustration, not a photograph."
+    elif IMAGE_MODE == "paid_gemini":
+        raw = gemini_image(visual)
+        disclosure = "Visual: AI-generated illustration, not a documentary photograph."
+    else:
+        raise RuntimeError("Unknown producer image mode; no artwork generated")
     jpeg = poster(raw, edit["headline"])
     url = story["source_url"]
     slug = hashlib.sha256(url.encode()).hexdigest()[:16]
@@ -317,7 +328,7 @@ def make_bundle(story: dict) -> tuple[dict, bytes]:
     caption = (
         edit["caption"] + "\n\nSource: " + story["source"] + " · " +
         publication.strftime("%d %b %Y") + "\n" + url +
-        "\n\nVisual: AI-generated illustration, not a documentary photograph." +
+        "\n\n" + disclosure +
         "\n\n#ODDNews73 #OddNews #Discoveries"
     )
     item = {"title": edit["headline"], "source_url": url,
@@ -337,7 +348,10 @@ def run():
         raise RuntimeError("Producer disabled; no external AI calls made")
     if not os.getenv("GEMINI_API_KEY", "").strip():
         raise RuntimeError("Existing Gemini API key not configured on the VPS")
-    if os.getenv("GEMINI_IMAGE_PAID_OK", "").lower() != "yes":
+    if IMAGE_MODE not in {"free_original", "paid_gemini"}:
+        raise RuntimeError("Unknown image mode; refusing to generate")
+    if (IMAGE_MODE == "paid_gemini" and
+            os.getenv("GEMINI_IMAGE_PAID_OK", "").lower() != "yes"):
         raise RuntimeError("Paid Gemini image API has not been explicitly authorized")
     LOCK.touch(exist_ok=True)
     with LOCK.open("r+") as f:
@@ -405,6 +419,7 @@ def main():
     args = parser.parse_args()
     if args.command == "check":
         print("Producer installed. Enabled:", os.getenv("PRODUCER_ENABLED") == "true")
+        print("Image mode:", IMAGE_MODE)
         print("Gemini API key present:", bool(os.getenv("GEMINI_API_KEY")))
         print("Paid image generation explicitly authorized:",
               os.getenv("GEMINI_IMAGE_PAID_OK", "").lower() == "yes")
