@@ -456,6 +456,23 @@
       "instagram_media_id": "18209397943375071",
       "instagram_permalink": "https://www.instagram.com/p/DgMJ9jPjatz/",
       "posted_utc": "2026-11-26T03:37:22.814420+00:00"
+    },
+    {
+      "slug": "66c3ff965cea149b",
+      "title": "A shadow in the sand",
+      "caption": "In 2025, excavators at Sutton Hoo’s Garden Field cemetery uncovered a body-shaped impression preserved in the sand. The acidic soil can dissolve bones and other remains while leaving a trace of their shape. The team also found grave goods and clues that a second person may have been buried there. The timing and relationship of the possible burials remain uncertain.\n\nSource: Smithsonian Smart News · 24 Nov 2026\nhttps://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/\n\nVisual: AI-generated illustration of a conceptual view of the excavation.\n\n#ODDNews73 #Discoveries",
+      "source": "Smithsonian Smart News",
+      "source_url": "https://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/",
+      "published_utc": "2026-11-24T00:00:00+00:00",
+      "expires_utc": "2026-12-01T00:00:00+00:00",
+      "status": "pending",
+      "demo": false,
+      "created_utc": "2026-11-26T08:37:02.848522+00:00",
+      "prepared_queue": true,
+      "queue_bundle_digest": "873e3aae9976cc5386d17a4f2495e9ad60a747382d039c895dfd9c2009b92da4",
+      "automatic_digest": "b94f0c7069937a6a56eba587a72934bcb2b57ac3d1f9ef646fde1f7535d54655",
+      "authorization": "owner-enabled prepared-queue publishing",
+      "scheduled_slot": "2026-11-26T14:07+0530"
     }
   ],
   "seen_links": [
@@ -470,7 +487,8 @@
     "https://www.smithsonianmag.com/smart-news/a-roman-cup-and-hundreds-other-treasures-unearthed-in-this-2000-year-old-tomb-reveal-the-rich-exchange-network-of-an-ancient-asian-empire-180989920/",
     "https://www.smithsonianmag.com/smart-news/these-endangered-snakes-are-some-of-the-most-beautiful-in-north-america-heres-how-conservationists-are-trying-to-save-them-180989916/",
     "https://phys.org/news/2026-11-hidden-million-years-rays-reveal.html",
-    "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/"
+    "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/",
+    "https://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/"
   ],
   "verified_instagram_id": "17841472407525134"
 }
