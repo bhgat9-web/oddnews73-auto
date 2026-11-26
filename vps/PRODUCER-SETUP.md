@@ -11,76 +11,70 @@ from the publisher's existing allowlisted RSS feeds (NASA, Smithsonian, Phys.org
 and Live Science). Each article must be retrieved; RSS headlines alone are not
 used to write posts.
 
-Gemini text API summarizes with two verbatim evidence excerpts from the
-retrieved source. Any story lacking those excerpts or other validation is
-rejected. Gemini image API creates an *original conceptual illustration*
-describing the article's subject. The existing logo and short headline are
-applied locally, and the approved **1080 × 1350 JPEG** is packaged with its
-source URL, caption, AI-image disclosure and cryptographic content digests.
+Gemini's existing free-tier **text** API drafts captions using two
+verbatim evidence excerpts from the retrieved article. Unsourced material
+is rejected.
 
-The producer shares the existing publisher's repository write lock, and adds
-at most three new story bundles per run, up to a reserve of nine prepared
-articles. Publication remains entirely owned by the working VPS publisher,
-which checks the artwork and Meta status and avoids duplicate publication.
+The default `PRODUCER_IMAGE_MODE=free_original` draws original, thematic
+illustrations locally using Pillow on your Hostinger VPS. It uses **no**
+paid image provider, GPU, external image key, borrowed copyrighted photo
+or image API. Artwork includes explicit subjects (submarine, fish, snake,
+fossil flower, burial, fossils, planets, forest) rather than unrelated
+eye/orbit motifs. Stories outside the supported illustrated subjects are
+skipped. This is programmed vector-style art, not photorealistic AI imagery;
+visual quality must be assessed with examples before going unattended.
 
-## Reuse existing Gemini account instead of Cloudflare
+The original ODD NEWS 73 logo and concise source-specific headline are
+applied to each **1080 × 1350 JPEG**. The file and attributed caption
+are validated with the publisher's exact content and image digests.
 
-No Cloudflare account/token is needed. The producer uses `GEMINI_API_KEY`,
-the same key *name* already used in `src/oddnews73.py` for text generation.
-This does **not** mean the key is available on the VPS: presence and permission
-must be checked without revealing the value.
+The producer holds the existing repository write lock and adds up to
+three bundles per production run, aiming for nine unused, recent posts.
+The operational publisher retains duplicate protection and exact JPEG
+verification; **this new producer does not call Instagram**.
 
-Default text model: `gemini-3.1-flash-lite`.
-Default image model: `gemini-3.1-flash-lite-image`.
-Image model may be switched to `gemini-3.1-flash-image`, but never silently.
+## No new image provider or image fees
 
-**Image-generation API output is paid, even when Gemini text usage is free.**
-Google's official current rate for Gemini 3.1 Flash Lite Image is approximately
-US$0.0336 for a 1K image, plus input and any text output. Paid tier access and
-budget authorization are required. Check latest official rates before
-enabling: https://ai.google.dev/gemini-api/docs/pricing
+No Cloudflare account is needed, and the original free artwork path
+**never calls the paid Gemini image API**. It still requires a usable
+`GEMINI_API_KEY` on the VPS for the **text** editor. Some Gemini text
+models allow free API usage subject to current Google quotas. The presence
+of a token and free-tier eligibility must be checked privately on the VPS.
 
-A conservative VPS-side budget tracker in
-`/srv/oddnews73/producer_budget.json` limits attempted paid image calls to
-**three per UTC day** (not three *per timer run*) by default. It reserves the
-attempt *before* calling Gemini, so unexpected errors still count against the
-cap. Set `PRODUCER_DAILY_IMAGE_LIMIT=0` to disable paid calls entirely.
-It is not a billing cap across other Google applications using the same key;
-Google Cloud billing budgets and API quotas should also be configured.
+Paid image generation is a separate, **disabled** option requiring both
+`PRODUCER_IMAGE_MODE=paid_gemini` and `GEMINI_IMAGE_PAID_OK=yes`.
+It is never switched on by the free-mode setup.
 
-**No automatic production has been enabled or charged through these code
-changes.** A paid account and explicit permission to incur usage are required
-before the first actual image-generation test. The separate
-`GEMINI_IMAGE_PAID_OK=yes` flag prevents an old producer setting from
-silently authorizing paid image generation.
+**Status:** Free artwork and producer code are present in GitHub and subject
+to automated offline tests. The new producer systemd timer is not yet
+activated or live-tested on Hostinger. The existing publisher continues.
 
 ## Safe deployment on Hostinger (only once account access is confirmed)
 
-From the root browser console, add the Gemini credential *only if it is not
-already present* to the existing **private** file
-`/etc/oddnews73/secrets.env`. Do not paste it in chat, screenshots, or GitHub.
-Retain the existing Instagram setting. Add:
+From your Hostinger root browser console, first confirm that your
+existing private file `/etc/oddnews73/secrets.env` contains a Gemini
+API key. Do not display or share the actual value. Preserve the Instagram
+token and other settings. Add these two lines if absent:
 
 ~~~dotenv
-GEMINI_API_KEY=YOUR_EXISTING_GEMINI_API_KEY
 PRODUCER_ENABLED=true
-GEMINI_IMAGE_PAID_OK=yes
-PRODUCER_DAILY_IMAGE_LIMIT=3
+PRODUCER_IMAGE_MODE=free_original
 ~~~
 
-Once the user has explicitly authorized the paid image API and reviewed a
-trial visual, install the separate producer with a **single guarded command**
-from the Hostinger root console:
+`GEMINI_IMAGE_PAID_OK=yes` is **not needed** for the no-fee setting
+and should not be added.
+
+Then run the guarded one-command installer:
 
 ~~~bash
+sudo -u oddnews73 git -C /srv/oddnews73/repo pull --ff-only origin main
 sudo bash /srv/oddnews73/repo/vps/install-producer.sh
 ~~~
 
-The installer refuses to enable without `GEMINI_API_KEY`,
-`GEMINI_IMAGE_PAID_OK=yes` and `PRODUCER_ENABLED=true` in the private
-environment file. It updates the producer's dependencies, runs offline
-safety tests and installs its own systemd timer. It does not read or display
-private credential values.
+The installer verifies the private Gemini key exists without displaying
+it, runs unit tests and installs only the separate producer timer.
+It will stop safely if prerequisites fail. No paid image generation
+and no manual Instagram posting are performed.
 
 This does not touch `oddnews73-publisher.timer` or the trading app. To
 pause content production only:
