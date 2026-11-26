@@ -1,0 +1,64 @@
+name: ODD News 73 - Free Original Art Preview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vps/free_art.py'
+      - '.github/workflows/free-art-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oddnews73-free-art-preview
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install Pillow
+      - name: Render original art samples with no image API
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, "vps")
+          import free_art
+          previews = [
+              ("deep-sea", "Robot submarine explores deepest ocean trench"),
+              ("golden-fish", "One in a million golden burbot fish"),
+              ("fossil-flower", "A tiny fossil flower hidden for 100 million years"),
+              ("burial", "Archaeologists uncover a burial in a tomb"),
+          ]
+          out = Path("previews/free-art")
+          out.mkdir(parents=True, exist_ok=True)
+          for name, title in previews:
+              data = free_art.render(title)
+              (out / (name + ".png")).write_bytes(data)
+              print("Rendered", name, len(data), "bytes")
+          PY
+      - name: Save proof-of-quality original art previews
+        run: |
+          git config user.name oddnews73-art-bot
+          git config user.email oddnews73-art-bot@users.noreply.github.com
+          git add previews/free-art/
+          if ! git diff --cached --quiet; then
+            git commit -m 'ODD News 73: render free artwork previews'
+            for attempt in 1 2 3; do
+              if git pull --rebase origin main && git push origin HEAD:main; then
+                exit 0
+              fi
+              sleep 4
+            done
+            exit 1
+          fi
