@@ -1,16 +1,7 @@
 name: ODD News 73 - Free Original Artwork Replenishment
 
 on:
-  # This is NOT the Instagram publisher. Delayed GitHub scheduling is safe
-  # for replenishment; precise publishing stays on Hostinger VPS systemd.
-  push:
-    branches: [main]
-    paths:
-      - 'vps/free_art.py'
-      - 'vps/producer.py'
-      - '.github/workflows/free-art-producer.yml'
-  # Automatic publishing of unreviewed vector art is intentionally disabled.
-  # Retain a manual QA path, separate from the functioning VPS publisher.
+  # Paused until visual samples are approved and verified.
   workflow_dispatch:
 
 permissions:
@@ -37,7 +28,7 @@ jobs:
       - name: Prepare verified source-linked originals without paid image APIs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          PRODUCER_ENABLED: 'true'
+          PRODUCER_ENABLED: 'false'
           PRODUCER_IMAGE_MODE: free_original
           GEMINI_TEXT_MODEL: gemini-3.1-flash-lite
           GEMINI_IMAGE_PAID_OK: 'no'
