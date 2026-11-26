@@ -569,7 +569,7 @@ def prepare_queued():
                 description, flags=re.IGNORECASE)
             locally_drawn = (
                 "Visual: original digitally drawn editorial illustration, not a photograph."
-                in description)
+                in description and item.get("visual_qa_approved") is True)
             if not (ai_disclosure or locally_drawn):
                 raise ValueError("missing illustration disclosure")
             if not hmac.compare_digest(queue_digest(item), item.get("bundle_digest", "")):
