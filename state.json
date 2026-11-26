@@ -495,5 +495,13 @@
     "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/",
     "https://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/"
   ],
-  "verified_instagram_id": "17841472407525134"
+  "verified_instagram_id": "17841472407525134",
+  "publisher_events": [
+    {
+      "event": "queue_exhausted",
+      "slot": "2026-11-26T21:07+0530",
+      "at_ist": "2026-11-26T21:07:02.862525+05:30",
+      "reason": "No unused approved story-specific artwork"
+    }
+  ]
 }
