@@ -89,8 +89,8 @@ jobs:
                   if not (
                       re.search(r"\bAI-generated(?:\s+[\w-]+){0,6}\s+illustration\b",
                                 caption, flags=re.IGNORECASE) or
-                      "Visual: original digitally drawn editorial illustration, not a photograph."
-                      in caption
+                      ("Visual: original digitally drawn editorial illustration, not a photograph."
+                       in caption and item.get("visual_qa_approved") is True)
                   ):
                       raise ValueError("illustration disclosure")
                   if not hmac.compare_digest(app.queue_digest(item), item.get("bundle_digest", "")):
