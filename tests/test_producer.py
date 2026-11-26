@@ -32,7 +32,8 @@ class ProducerTests(unittest.TestCase):
             "PRODUCER_ENABLED": "true",
             "GEMINI_API_KEY": "dummy-secret-for-test",
             "GEMINI_IMAGE_PAID_OK": "",
-        }), patch.object(producer, "git") as git, \
+        }), patch.object(producer, "IMAGE_MODE", "paid_gemini"), \
+             patch.object(producer, "git") as git, \
              patch.object(producer, "gemini") as api:
             with self.assertRaisesRegex(RuntimeError, "explicitly authorized"):
                 producer.run()
@@ -98,12 +99,14 @@ class ProducerTests(unittest.TestCase):
         }
         with patch.object(producer, "article_text", return_value="Verified article body"), \
              patch.object(producer, "write_story", return_value=edited), \
-             patch.object(producer, "gemini_image", return_value=raw.getvalue()):
+             patch.object(producer, "IMAGE_MODE", "free_original"), \
+             patch.object(producer, "gemini_image") as paid_image:
             item, jpg = producer.make_bundle(story)
+            paid_image.assert_not_called()
         self.assertTrue(item["ready"])
         self.assertEqual(item["image_sha256"], hashlib.sha256(jpg).hexdigest())
         self.assertEqual(item["bundle_digest"], producer.pub.queue_digest(item))
-        self.assertIn("AI-generated illustration", item["caption"])
+        self.assertIn("original digitally drawn editorial illustration", item["caption"])
         self.assertIn(source, item["caption"])
         self.assertEqual(datetime.fromisoformat(item["expires_utc"]) -
                          datetime.fromisoformat(item["published_utc"]),
@@ -139,6 +142,30 @@ class ProducerTests(unittest.TestCase):
         args, kw = call.call_args
         self.assertEqual(args[0], producer.MODEL_IMAGE)
         self.assertIn("IMAGE", args[1]["generationConfig"]["responseModalities"])
+
+
+    def test_free_art_is_subject_specific_and_no_provider_network(self):
+        from unittest.mock import patch
+        from PIL import Image
+        import free_art
+        self.assertEqual(free_art.category("Deep sea submarine explores trench"), "deep_sea")
+        self.assertEqual(free_art.category("A golden burbot fish was discovered"), "fish")
+        self.assertEqual(free_art.category("Flowers hidden in 100 million year fossil"), "flower")
+        self.assertEqual(free_art.category("Archaeologists reveal an ancient tomb"), "archaeology")
+        self.assertIsNone(free_art.category("Researchers discover an unusual mystery"))
+        with patch.object(producer, "gemini") as api:
+            for title in ("Deep sea submarine explores trench",
+                          "A golden burbot fish was discovered",
+                          "Flowers hidden in 100 million year fossil",
+                          "Archaeologists reveal an ancient tomb"):
+                with self.subTest(title=title):
+                    raw = free_art.render(title)
+                    with Image.open(io.BytesIO(raw)) as im:
+                        self.assertEqual(im.size, (1080, 1350))
+                        self.assertEqual(im.format, "PNG")
+            api.assert_not_called()
+        with self.assertRaisesRegex(ValueError, "No source-specific"):
+            free_art.render("Researchers discover an unusual mystery")
 
     def test_text_editor_uses_supported_existing_gemini_model(self):
         payload = {"candidates": [{"content": {"parts": [{"text": '{"ok":true}'}]}}]}
