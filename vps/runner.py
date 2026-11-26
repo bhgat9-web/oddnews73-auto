@@ -149,16 +149,11 @@ def main():
             # approved editorial artwork with a generic generated card.
             app.prepare_queued()
             if not app.RUN.is_file():
-                # Recover only a previously approved post conclusively known
-                # not to have created an Instagram media container.
-                if app.prepare_confirmed_unpublished_recovery():
-                    report("recovered_unpublished_artwork", slot=slot)
-                else:
-                    report("queue_exhausted", slot=slot,
-                           reason="No unused approved story-specific artwork")
-                    persist_outcome("queue_exhausted", slot,
-                                    "No unused approved story-specific artwork")
-                    return
+                report("queue_exhausted", slot=slot,
+                       reason="No unused approved story-specific artwork")
+                persist_outcome("queue_exhausted", slot,
+                                "No unused approved story-specific artwork")
+                return
 
             state = app.load()
             rec = app.current(state)
