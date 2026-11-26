@@ -443,11 +443,14 @@
       "source_url": "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/",
       "published_utc": "2026-11-24T00:00:00+00:00",
       "expires_utc": "2026-12-01T00:00:00+00:00",
-      "status": "draft",
+      "status": "pending",
       "demo": false,
-      "created_utc": "2026-11-25T17:03:46.831573+00:00",
+      "created_utc": "2026-11-26T03:37:03.654295+00:00",
       "prepared_queue": true,
-      "queue_bundle_digest": "e295a9989f6ae0b010544a46f5a94a33a8e638370ac8dd2160a707fd0d527291"
+      "queue_bundle_digest": "e295a9989f6ae0b010544a46f5a94a33a8e638370ac8dd2160a707fd0d527291",
+      "automatic_digest": "3ed016e6995823eb5770df0cd1edefbe623fcd23f32288868c323f5356b9e1c5",
+      "authorization": "owner-enabled prepared-queue publishing",
+      "scheduled_slot": "2026-11-26T09:07+0530"
     }
   ],
   "seen_links": [
@@ -461,7 +464,8 @@
     "https://phys.org/news/2026-11-robot-submarine-exploring-world-deepest.html",
     "https://www.smithsonianmag.com/smart-news/a-roman-cup-and-hundreds-other-treasures-unearthed-in-this-2000-year-old-tomb-reveal-the-rich-exchange-network-of-an-ancient-asian-empire-180989920/",
     "https://www.smithsonianmag.com/smart-news/these-endangered-snakes-are-some-of-the-most-beautiful-in-north-america-heres-how-conservationists-are-trying-to-save-them-180989916/",
-    "https://phys.org/news/2026-11-hidden-million-years-rays-reveal.html"
+    "https://phys.org/news/2026-11-hidden-million-years-rays-reveal.html",
+    "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/"
   ],
   "verified_instagram_id": "17841472407525134"
 }
