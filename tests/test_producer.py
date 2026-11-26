@@ -31,6 +31,7 @@ class ProducerTests(unittest.TestCase):
         with patch.dict(os.environ, {
             "PRODUCER_ENABLED": "true",
             "GEMINI_API_KEY": "dummy-secret-for-test",
+            "ODDNEWS73_VISUAL_QA_APPROVED": "yes",
             "GEMINI_IMAGE_PAID_OK": "",
         }), patch.object(producer, "IMAGE_MODE", "paid_gemini"), \
              patch.object(producer, "git") as git, \
@@ -39,6 +40,17 @@ class ProducerTests(unittest.TestCase):
                 producer.run()
         git.assert_not_called()
         api.assert_not_called()
+
+    def test_no_approval_no_artwork_generation(self):
+        with patch.dict(os.environ, {
+            "PRODUCER_ENABLED": "true",
+            "ODDNEWS73_VISUAL_QA_APPROVED": "",
+        }), patch.object(producer, "gemini") as ai, \
+             patch.object(producer, "git") as git:
+            with self.assertRaisesRegex(RuntimeError, "visual quality approval"):
+                producer.run()
+        ai.assert_not_called()
+        git.assert_not_called()
 
     def test_unreadable_paid_budget_fails_closed(self):
         import tempfile
