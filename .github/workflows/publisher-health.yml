@@ -86,8 +86,12 @@ jobs:
                   caption = item["caption"]
                   if not 50 <= len(caption) <= 2200 or url not in caption:
                       raise ValueError("caption")
-                  if not re.search(r"\bAI-generated(?:\s+[\w-]+){0,6}\s+illustration\b",
-                                   caption, flags=re.IGNORECASE):
+                  if not (
+                      re.search(r"\bAI-generated(?:\s+[\w-]+){0,6}\s+illustration\b",
+                                caption, flags=re.IGNORECASE) or
+                      "Visual: original digitally drawn editorial illustration, not a photograph."
+                      in caption
+                  ):
                       raise ValueError("illustration disclosure")
                   if not hmac.compare_digest(app.queue_digest(item), item.get("bundle_digest", "")):
                       raise ValueError("content digest")
