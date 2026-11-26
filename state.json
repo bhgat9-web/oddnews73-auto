@@ -443,7 +443,7 @@
       "source_url": "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/",
       "published_utc": "2026-11-24T00:00:00+00:00",
       "expires_utc": "2026-12-01T00:00:00+00:00",
-      "status": "in_flight",
+      "status": "posted",
       "demo": false,
       "created_utc": "2026-11-26T03:37:03.654295+00:00",
       "prepared_queue": true,
@@ -451,7 +451,11 @@
       "automatic_digest": "3ed016e6995823eb5770df0cd1edefbe623fcd23f32288868c323f5356b9e1c5",
       "authorization": "owner-enabled prepared-queue publishing",
       "scheduled_slot": "2026-11-26T09:07+0530",
-      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/fca53d6358ea95b3.jpg"
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/fca53d6358ea95b3.jpg",
+      "container_id": "17906199891413585",
+      "instagram_media_id": "18209397943375071",
+      "instagram_permalink": "https://www.instagram.com/p/DgMJ9jPjatz/",
+      "posted_utc": "2026-11-26T03:37:22.814420+00:00"
     }
   ],
   "seen_links": [
