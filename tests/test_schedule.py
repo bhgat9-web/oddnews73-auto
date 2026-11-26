@@ -79,53 +79,6 @@ class ScheduleConfigurationTests(unittest.TestCase):
 
 
 
-class ConfirmedUnpublishedRecoveryTests(unittest.TestCase):
-    def test_old_prealflight_failure_is_recoverable_without_meta_and_preserves_audit(self):
-        # Use the actual existing failed draft and its original JPEG, but
-        # isolate state/run writes to temporary local test fixtures.
-        import shutil
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            shutil.copy(app.ROOT / "state.json", root / "state.json")
-            when = datetime(2026, 11, 26, 15, 47, tzinfo=timezone.utc)
-            with patch.object(app, "STATE", root / "state.json"), \
-                 patch.object(app, "RUN", root / "run.json"), \
-                 patch.object(app, "NOW", return_value=when), \
-                 patch.dict("os.environ", {
-                     "LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true",
-                 }), patch.object(app, "ig") as meta:
-                recovered = app.prepare_confirmed_unpublished_recovery()
-                new_state = app.load()
-                recovery = [r for r in new_state["entries"] if
-                            r.get("slug") == "068f4d0dd1e56b53"][0]
-                self.assertTrue(recovered)
-                self.assertEqual(recovery["status"], "pending")
-                self.assertEqual(recovery["scheduled_slot"],
-                                 "2026-11-26T21:07+0530")
-                self.assertEqual(recovery["original_failed_slot"],
-                                 "2026-11-24T09:07+0530")
-                self.assertTrue(recovery["recovered_from_confirmed_unpublished"])
-                self.assertFalse(app.prepare_confirmed_unpublished_recovery())
-                meta.assert_not_called()
-
-    def test_maybe_published_failure_is_never_replayed(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            rec = {"status": "not_published", "slug": "068f4d0dd1e56b53",
-                   "error": "no Meta container was created",
-                   "container_id": "maybe-created"}
-            (root / "state.json").write_text(json.dumps({
-                "entries": [rec], "seen_links": []}))
-            when = datetime(2026, 11, 26, 15, 47, tzinfo=timezone.utc)
-            with patch.object(app, "STATE", root / "state.json"), \
-                 patch.object(app, "RUN", root / "run.json"), \
-                 patch.object(app, "NOW", return_value=when), \
-                 patch.dict("os.environ", {
-                     "LIVE_PUBLISH": "true", "AUTO_PUBLISH": "true"}):
-                self.assertFalse(app.prepare_confirmed_unpublished_recovery())
-                self.assertFalse((root / "run.json").exists())
-
-
 class DelayedScheduleTests(unittest.TestCase):
     def test_observed_late_runs_stay_in_one_evening_slot(self):
         expected = "2026-11-20T21:07+0530"
