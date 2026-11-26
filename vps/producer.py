@@ -346,6 +346,8 @@ def git(*args):
 def run():
     if os.getenv("PRODUCER_ENABLED", "").lower() != "true":
         raise RuntimeError("Producer disabled; no external AI calls made")
+    if os.getenv("ODDNEWS73_VISUAL_QA_APPROVED", "").lower() != "yes":
+        raise RuntimeError("Original artwork requires owner visual quality approval")
     if not os.getenv("GEMINI_API_KEY", "").strip():
         raise RuntimeError("Existing Gemini API key not configured on the VPS")
     if IMAGE_MODE not in {"free_original", "paid_gemini"}:
