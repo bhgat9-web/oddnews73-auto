@@ -465,14 +465,15 @@
       "source_url": "https://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/",
       "published_utc": "2026-11-24T00:00:00+00:00",
       "expires_utc": "2026-12-01T00:00:00+00:00",
-      "status": "pending",
+      "status": "in_flight",
       "demo": false,
       "created_utc": "2026-11-26T08:37:02.848522+00:00",
       "prepared_queue": true,
       "queue_bundle_digest": "873e3aae9976cc5386d17a4f2495e9ad60a747382d039c895dfd9c2009b92da4",
       "automatic_digest": "b94f0c7069937a6a56eba587a72934bcb2b57ac3d1f9ef646fde1f7535d54655",
       "authorization": "owner-enabled prepared-queue publishing",
-      "scheduled_slot": "2026-11-26T14:07+0530"
+      "scheduled_slot": "2026-11-26T14:07+0530",
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/66c3ff965cea149b.jpg"
     }
   ],
   "seen_links": [
