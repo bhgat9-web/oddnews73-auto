@@ -508,6 +508,12 @@
       "slot": "2026-11-26T21:07+0530",
       "at_ist": "2026-11-26T21:17:02.784932+05:30",
       "reason": "No unused approved story-specific artwork"
+    },
+    {
+      "event": "queue_exhausted",
+      "slot": "2026-11-26T21:07+0530",
+      "at_ist": "2026-11-26T21:27:03.141835+05:30",
+      "reason": "No unused approved story-specific artwork"
     }
   ]
 }
