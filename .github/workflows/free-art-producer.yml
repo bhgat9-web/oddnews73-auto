@@ -1,0 +1,58 @@
+name: ODD News 73 - Free Original Artwork Replenishment
+
+on:
+  # This is NOT the Instagram publisher. Delayed GitHub scheduling is safe
+  # for replenishment; precise publishing stays on Hostinger VPS systemd.
+  push:
+    branches: [main]
+    paths:
+      - 'vps/free_art.py'
+      - 'vps/producer.py'
+      - '.github/workflows/free-art-producer.yml'
+  schedule:
+    - cron: '0 0,7,12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oddnews73-artwork-producer
+  cancel-in-progress: false
+
+jobs:
+  replenish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Check original illustration and publication safety tests
+        run: python -m unittest discover -s tests -v
+      - name: Prepare verified source-linked originals without paid image APIs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PRODUCER_ENABLED: 'true'
+          PRODUCER_IMAGE_MODE: free_original
+          GEMINI_TEXT_MODEL: gemini-3.1-flash-lite
+          GEMINI_IMAGE_PAID_OK: 'no'
+        shell: bash
+        run: |
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            echo "NOT CONFIGURED: Existing repository GEMINI_API_KEY secret is absent."
+            echo "No paid image provider or generic artwork was used."
+            exit 0
+          fi
+          git config user.name oddnews73-art-bot
+          git config user.email oddnews73-art-bot@users.noreply.github.com
+          python vps/producer.py run
+      - name: Report inventory check
+        if: always()
+        run: |
+          echo "Publisher is the independent Hostinger VPS systemd timer." >> "$GITHUB_STEP_SUMMARY"
+          echo "Image generation uses local Pillow only. No paid image endpoint." >> "$GITHUB_STEP_SUMMARY"
