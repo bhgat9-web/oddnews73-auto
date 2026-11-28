@@ -500,6 +500,23 @@
       "instagram_media_id": "17998773896842000",
       "instagram_permalink": "https://www.instagram.com/p/DgR1699GqId/",
       "posted_utc": "2026-11-28T08:37:43.083963+00:00"
+    },
+    {
+      "slug": "ec0c4fd3819023a8",
+      "title": "A recipe that lasted centuries",
+      "caption": "Chemical traces on crocodile mummies from Kom Ombo in southern Egypt point to an embalming tradition that lasted for centuries. Researchers found a recurring mixture of beeswax and material derived from conifers. They compared it with residues from mummies at other sites and found differences. The number of Kom Ombo specimens tested is small, so the result is a clue to local practice.\n\nSource: Phys.org · 27 Nov 2026\nhttps://phys.org/news/2026-11-beeswax-link-crocodile-mummies-centuries.html\n\nVisual: AI-generated illustration of an imagined display of a wrapped crocodile and balm ingredients.\n\n#ODDNews73 #Archaeology #AncientEgypt",
+      "source": "Phys.org",
+      "source_url": "https://phys.org/news/2026-11-beeswax-link-crocodile-mummies-centuries.html",
+      "published_utc": "2026-11-27T00:00:00+00:00",
+      "expires_utc": "2026-12-04T00:00:00+00:00",
+      "status": "pending",
+      "demo": false,
+      "created_utc": "2026-11-28T15:37:02.662621+00:00",
+      "prepared_queue": true,
+      "queue_bundle_digest": "989682c179b1af6f27c99fd8afd912ad89d5d787fc502346cb885bcbbb2e0f95",
+      "automatic_digest": "7b5921bde1c6e0735c9d8f1bfa9b84a331aa905a4b45e3842119579dce0e3b6a",
+      "authorization": "owner-enabled prepared-queue publishing",
+      "scheduled_slot": "2026-11-28T21:07+0530"
     }
   ],
   "seen_links": [
@@ -516,7 +533,8 @@
     "https://phys.org/news/2026-11-hidden-million-years-rays-reveal.html",
     "https://www.smithsonianmag.com/smart-news/biologists-discovere-a-one-in-a-million-bright-yellow-burbot-fish-in-new-yorks-oswego-harbor-180989928/",
     "https://www.smithsonianmag.com/smart-news/almost-90-years-after-discovering-a-ship-burial-that-rewrote-british-history-archaeologists-returned-to-sutton-hoo-this-time-they-uncovered-a-ghostly-sand-body-180989932/",
-    "https://phys.org/news/2026-11-fern-species-years-mistaken.html"
+    "https://phys.org/news/2026-11-fern-species-years-mistaken.html",
+    "https://phys.org/news/2026-11-beeswax-link-crocodile-mummies-centuries.html"
   ],
   "verified_instagram_id": "17841472407525134",
   "publisher_events": [
