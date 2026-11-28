@@ -96,6 +96,42 @@
       "image_sha256": "6f332b798b288028b0bd7e6dd81d778a5e9dc26e561202fe49c9225ed0e338ae",
       "bundle_digest": "873e3aae9976cc5386d17a4f2495e9ad60a747382d039c895dfd9c2009b92da4",
       "ready": true
+    },
+    {
+      "title": "Hiding in plain sight",
+      "source_url": "https://phys.org/news/2026-11-fern-species-years-mistaken.html",
+      "source": "Phys.org",
+      "published_utc": "2026-11-27T00:00:00+00:00",
+      "expires_utc": "2026-12-04T00:00:00+00:00",
+      "slug": "73cebae197d095e7",
+      "caption": "Collectors gathered this tree-growing fern in Myanmar and Vietnam as early as the 19th century, but it was repeatedly identified as a different species. Fieldwork in the mountains of southern China, along with a closer look at its spore clusters and DNA, helped researchers distinguish Drynaria lineatisora. Its unusually long, narrow spore clusters were one clue.\n\nSource: Phys.org · 27 Nov 2026\nhttps://phys.org/news/2026-11-fern-species-years-mistaken.html\n\nVisual: AI-generated illustration of an imagined mountain forest scene.\n\n#ODDNews73 #Botany #Ferns",
+      "image_sha256": "19f6b811ef668b8532169751c6de45a064841165f51c323e276fcdc6eca0d414",
+      "bundle_digest": "1d063474380c0a3dd33ecc5c7491a40c65a9029a6f5daa324a1e9579449a5de4",
+      "ready": true
+    },
+    {
+      "title": "A recipe that lasted centuries",
+      "source_url": "https://phys.org/news/2026-11-beeswax-link-crocodile-mummies-centuries.html",
+      "source": "Phys.org",
+      "published_utc": "2026-11-27T00:00:00+00:00",
+      "expires_utc": "2026-12-04T00:00:00+00:00",
+      "slug": "ec0c4fd3819023a8",
+      "caption": "Chemical traces on crocodile mummies from Kom Ombo in southern Egypt point to an embalming tradition that lasted for centuries. Researchers found a recurring mixture of beeswax and material derived from conifers. They compared it with residues from mummies at other sites and found differences. The number of Kom Ombo specimens tested is small, so the result is a clue to local practice.\n\nSource: Phys.org · 27 Nov 2026\nhttps://phys.org/news/2026-11-beeswax-link-crocodile-mummies-centuries.html\n\nVisual: AI-generated illustration of an imagined display of a wrapped crocodile and balm ingredients.\n\n#ODDNews73 #Archaeology #AncientEgypt",
+      "image_sha256": "288d47df93f3863a2e84fd0f8f32fe94faacb22430ab86f045f57c528c9526c2",
+      "bundle_digest": "989682c179b1af6f27c99fd8afd912ad89d5d787fc502346cb885bcbbb2e0f95",
+      "ready": true
+    },
+    {
+      "title": "The tooth it survived losing",
+      "source_url": "https://phys.org/news/2026-11-ancient-skull-reveals-early-largest.html",
+      "source": "Phys.org",
+      "published_utc": "2026-11-27T00:00:00+00:00",
+      "expires_utc": "2026-12-04T00:00:00+00:00",
+      "slug": "f889112fc3a18229",
+      "caption": "A partial skull from northwestern China revealed a previously undescribed hyena-like predator, Dinocrocuta yingliangi. The deposits date to roughly 11.2 million to 9.8 million years ago. Bone grew into the socket after the animal lost a canine, showing that it survived the injury. Wear on the opposite side suggests it may have shifted where it chewed.\n\nSource: Phys.org · 27 Nov 2026\nhttps://phys.org/news/2026-11-ancient-skull-reveals-early-largest.html\n\nVisual: AI-generated illustration of an imagined fossil display. The artwork does not depict the actual specimen or healed socket.\n\n#ODDNews73 #Paleontology #Fossils",
+      "image_sha256": "99f4c56ad38142d41e1300f9a0f5c55d8ad3186cc2f8d815482f35087bbbaa1c",
+      "bundle_digest": "17dc321965f5087639276070cfdb6514e665969ec4d0a899228e7ff8aa17354f",
+      "ready": true
     }
   ]
 }
