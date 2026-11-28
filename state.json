@@ -509,7 +509,7 @@
       "source_url": "https://phys.org/news/2026-11-beeswax-link-crocodile-mummies-centuries.html",
       "published_utc": "2026-11-27T00:00:00+00:00",
       "expires_utc": "2026-12-04T00:00:00+00:00",
-      "status": "in_flight",
+      "status": "posted",
       "demo": false,
       "created_utc": "2026-11-28T15:37:02.662621+00:00",
       "prepared_queue": true,
@@ -517,7 +517,11 @@
       "automatic_digest": "7b5921bde1c6e0735c9d8f1bfa9b84a331aa905a4b45e3842119579dce0e3b6a",
       "authorization": "owner-enabled prepared-queue publishing",
       "scheduled_slot": "2026-11-28T21:07+0530",
-      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/ec0c4fd3819023a8.jpg"
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/ec0c4fd3819023a8.jpg",
+      "container_id": "17906898276413585",
+      "instagram_media_id": "18150961069497301",
+      "instagram_permalink": "https://www.instagram.com/p/DgSl-rnDz50/",
+      "posted_utc": "2026-11-28T15:37:41.407971+00:00"
     }
   ],
   "seen_links": [
