@@ -487,14 +487,15 @@
       "source_url": "https://phys.org/news/2026-11-fern-species-years-mistaken.html",
       "published_utc": "2026-11-27T00:00:00+00:00",
       "expires_utc": "2026-12-04T00:00:00+00:00",
-      "status": "pending",
+      "status": "in_flight",
       "demo": false,
       "created_utc": "2026-11-28T08:37:04.391017+00:00",
       "prepared_queue": true,
       "queue_bundle_digest": "1d063474380c0a3dd33ecc5c7491a40c65a9029a6f5daa324a1e9579449a5de4",
       "automatic_digest": "2140e56a4badb9240a7eab9fa158c52b009f8b2bb373d37203b7a42551ce0964",
       "authorization": "owner-enabled prepared-queue publishing",
-      "scheduled_slot": "2026-11-28T14:07+0530"
+      "scheduled_slot": "2026-11-28T14:07+0530",
+      "image_url": "https://bhgat9-web.github.io/oddnews73-auto/posts/73cebae197d095e7.jpg"
     }
   ],
   "seen_links": [
